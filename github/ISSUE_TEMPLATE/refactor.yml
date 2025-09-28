@@ -1,0 +1,22 @@
+name: "🛠 Refactor / Docs"
+description: "리팩토링/문서화 작업"
+title: "[Refactor] "
+labels: ["refactor", "docs"]
+assignees: []
+body:
+  - type: input
+    id: scope
+    attributes:
+      label: "📍 대상"
+      description: "리팩토링/문서화할 부분"
+      placeholder: "예: MemberService 구조 리팩토링"
+  - type: textarea
+    id: reason
+    attributes:
+      label: "💡 필요 이유"
+      placeholder: "가독성 향상, 중복 코드 제거 등"
+  - type: textarea
+    id: plan
+    attributes:
+      label: "🛠 진행 방법"
+      placeholder: "Service → Facade 분리, Swagger 문서 보완 등"

@@ -1,0 +1,32 @@
+name: "🐛 Bug Report"
+description: "버그 제보"
+title: "[Bug] "
+labels: ["bug"]
+assignees: []
+body:
+  - type: input
+    id: bug-summary
+    attributes:
+      label: "📌 버그 설명"
+      description: "버그를 한 줄로 요약"
+      placeholder: "예: 로그인 시 토큰이 발급되지 않음"
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: "🔄 재현 방법"
+      description: "어떻게 재현할 수 있는지 단계별 작성"
+      placeholder: |
+        1. POST /api/auth/login 요청
+        2. 올바른 ID/PW 입력
+        3. 500 에러 발생
+  - type: textarea
+    id: expected
+    attributes:
+      label: "✔ 기대 결과"
+      placeholder: "정상적으로 Access/Refresh Token 발급"
+  - type: textarea
+    id: logs
+    attributes:
+      label: "🧾 관련 로그"
+      description: "에러 로그/스크린샷 첨부"
+      render: shell
