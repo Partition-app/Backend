@@ -1,0 +1,30 @@
+name: "✨ Feature Request"
+description: "새로운 기능 추가 요청"
+title: "[Feature] "
+labels: ["feature", "enhancement"]
+assignees: []
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: "📌 개요"
+      description: "추가하려는 기능에 대한 간단한 설명"
+      placeholder: "예: 회원가입 API 구현"
+  - type: textarea
+    id: details
+    attributes:
+      label: "📝 상세 설명"
+      description: "기능의 목적, 배경, 구현 방법 등을 구체적으로 작성"
+      placeholder: |
+        - JWT 기반 회원가입 API
+        - validation 체크 포함
+        - 테스트 코드 작성
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "✅ 작업 항목"
+      description: "작업 단계를 체크리스트로 작성"
+      placeholder: |
+        - [ ] DTO 작성
+        - [ ] Controller / Service / Repository 구현
+        - [ ] Test 작성
