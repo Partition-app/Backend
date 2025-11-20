@@ -53,11 +53,12 @@ public class User extends BaseEntity {
     private LocalDateTime movedOutAt;
 
     @Builder
-    public User(String email, String password, String name, String provider, String providerId, UserRole memberRole) {
+    public User(String email, String password, String name, String provider, String profileImage, String providerId, UserRole memberRole) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.provider = provider;
+        this.profileImage = profileImage;
         this.providerId = providerId;
         this.memberRole = memberRole;
         this.isActive = true;
