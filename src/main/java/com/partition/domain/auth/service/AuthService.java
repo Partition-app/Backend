@@ -43,8 +43,6 @@ public class AuthService {
             throw new CustomException(AuthErrorCode.EMPTY_ACCESS_TOKEN);
         }
 
-        log.debug("카카오 액세스 토큰 수신: {}...", kakaoAccessToken.substring(0, Math.min(10, kakaoAccessToken.length())));
-
         // 카카오 API 호출 (내부에서 CustomException 처리됨)
         Map<String, Object> kakaoUserInfo = getUserInfoFromKakao(kakaoAccessToken);
 
