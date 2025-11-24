@@ -51,5 +51,5 @@ jobs:
           script: |
             cd /home/ubuntu/partition
             git pull
-            sudo docker-compose pull
-            sudo docker-compose up -d
+            sudo docker compose pull
+            sudo docker compose up -d
