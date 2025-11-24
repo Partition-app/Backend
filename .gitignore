@@ -40,6 +40,10 @@ out/
 *.log
 logs/
 
+### JAR ###
+app.jar
+*.jar
+
 ### Environment ###
 .env
 *.env

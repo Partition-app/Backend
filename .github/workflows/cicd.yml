@@ -50,6 +50,12 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/partition
-            git pull
-            sudo docker-compose pull
-            sudo docker-compose up -d
+
+            # 지금 푸시된 브랜치 기준으로 체크아웃 (main or develop)
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+
+            # 최신 이미지 받아서 컨테이너 재시작
+            sudo docker compose pull
+            sudo docker compose up -d
