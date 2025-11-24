@@ -2,10 +2,12 @@ package com.partition.domain.auth.service;
 
 import com.partition.domain.auth.dto.request.KakaoLoginRequest;
 import com.partition.domain.auth.dto.response.TokenResponse;
+import com.partition.domain.auth.exception.AuthErrorCode;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.User;
 import com.partition.entity.enums.UserRole;
 import com.partition.global.config.jwt.JwtTokenProvider;
+import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,19 +35,18 @@ public class AuthService {
     public TokenResponse kakaoLogin(KakaoLoginRequest request) {
         log.info("카카오 로그인 시작");
 
-        // Front에서 받은 카카오 토큰으로 카카오 유저 정보 가져오기
         String kakaoAccessToken = request.getKakaoAccessToken();
 
+        // [변경] CustomException 사용 (토큰 누락 시)
         if (kakaoAccessToken == null || kakaoAccessToken.trim().isEmpty()) {
             log.error("카카오 액세스 토큰이 비어있습니다.");
-            throw new IllegalArgumentException("카카오 액세스 토큰이 필요합니다.");
+            throw new CustomException(AuthErrorCode.EMPTY_ACCESS_TOKEN);
         }
 
-        log.debug("카카오 액세스 토큰 수신: {}...", kakaoAccessToken.substring(0, Math.min(10, kakaoAccessToken.length())));
-
+        // 카카오 API 호출 (내부에서 CustomException 처리됨)
         Map<String, Object> kakaoUserInfo = getUserInfoFromKakao(kakaoAccessToken);
 
-        // 유저 정보 파싱 (Null 체크 강화)
+        // 유저 정보 파싱
         String providerId = extractProviderId(kakaoUserInfo);
         String email = extractEmail(kakaoUserInfo, providerId);
         String name = extractName(kakaoUserInfo);
@@ -53,7 +54,7 @@ public class AuthService {
 
         log.info("카카오 사용자 정보 추출 완료 - providerId: {}, email: {}", providerId, email);
 
-        // DB 조회 후 없으면 회원가입, 있으면 로그인 처리
+        // DB 조회 및 가입/로그인
         User user = userRepository.findByProviderId(providerId)
                 .orElseGet(() -> {
                     log.info("신규 사용자 회원가입 - providerId: {}", providerId);
@@ -67,7 +68,7 @@ public class AuthService {
                             .build());
                 });
 
-        // partition 전용 토큰 발급
+        // JWT 발급
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getMemberRole().getKey());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
@@ -81,9 +82,6 @@ public class AuthService {
                 .build();
     }
 
-    /**
-     * 카카오 서버로 유저 정보 요청
-     */
     private Map<String, Object> getUserInfoFromKakao(String accessToken) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -92,8 +90,6 @@ public class AuthService {
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            log.debug("카카오 API 호출 시작: https://kapi.kakao.com/v2/user/me");
-
             ResponseEntity<Map> response = restTemplate.exchange(
                     "https://kapi.kakao.com/v2/user/me",
                     HttpMethod.GET,
@@ -101,10 +97,9 @@ public class AuthService {
                     Map.class
             );
 
-            log.debug("카카오 API 응답 성공: {}", response.getStatusCode());
-
             if (response.getBody() == null) {
-                throw new IllegalStateException("카카오 API 응답이 비어있습니다.");
+                // [변경] 응답 바디가 비어있으면 카카오 연동 실패 간주
+                throw new CustomException(AuthErrorCode.KAKAO_LOGIN_FAILED);
             }
 
             return response.getBody();
@@ -113,94 +108,62 @@ public class AuthService {
             log.error("카카오 API 호출 실패 - 상태코드: {}, 응답: {}", e.getStatusCode(), e.getResponseBodyAsString());
 
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                throw new IllegalArgumentException("유효하지 않은 카카오 액세스 토큰입니다.", e);
+                // [변경] 401 에러 -> 유효하지 않은 토큰 에러
+                throw new CustomException(AuthErrorCode.INVALID_ACCESS_TOKEN);
             }
+            // 그 외 4xx 에러 -> 일반적인 로그인 실패
+            throw new CustomException(AuthErrorCode.KAKAO_LOGIN_FAILED);
 
-            throw new RuntimeException("카카오 사용자 정보를 가져오는데 실패했습니다.", e);
-
+        } catch (CustomException e) {
+            throw e; // 이미 CustomException이면 그대로 던짐
         } catch (Exception e) {
             log.error("카카오 사용자 정보 조회 중 예상치 못한 오류 발생", e);
-            throw new RuntimeException("카카오 인증 중 오류가 발생했습니다.", e);
+            // [변경] 알 수 없는 에러 -> 로그인 실패 처리
+            throw new CustomException(AuthErrorCode.KAKAO_LOGIN_FAILED);
         }
     }
 
-    /**
-     * 카카오 응답에서 providerId 추출
-     */
     private String extractProviderId(Map<String, Object> kakaoUserInfo) {
         Object id = kakaoUserInfo.get("id");
         if (id == null) {
-            throw new IllegalStateException("카카오 사용자 ID를 찾을 수 없습니다.");
+            // [변경] ID가 없으면 심각한 에러
+            throw new CustomException(AuthErrorCode.KAKAO_LOGIN_FAILED);
         }
         return String.valueOf(id);
     }
 
-    /**
-     * 카카오 응답에서 이메일 추출
-     */
     private String extractEmail(Map<String, Object> kakaoUserInfo, String providerId) {
         Map<String, Object> kakaoAccount = (Map<String, Object>) kakaoUserInfo.get("kakao_account");
-        if (kakaoAccount == null) {
-            log.warn("kakao_account 정보가 없습니다. 기본 이메일 사용");
-            return providerId + "@kakao.com";
-        }
-
+        // 이메일 추출 로직은 기존 유지 (없으면 더미 이메일 사용)
+        if (kakaoAccount == null) return providerId + "@kakao.com";
         String email = (String) kakaoAccount.get("email");
-        if (email == null || email.trim().isEmpty()) {
-            log.warn("이메일 정보가 없습니다. 기본 이메일 사용");
-            return providerId + "@kakao.com";
-        }
-
+        if (email == null || email.trim().isEmpty()) return providerId + "@kakao.com";
         return email;
     }
 
-    /**
-     * 카카오 응답에서 닉네임 추출
-     */
     private String extractName(Map<String, Object> kakaoUserInfo) {
+        // 닉네임 추출 로직 유지 (예외 시 기본값 반환)
         try {
             Map<String, Object> kakaoAccount = (Map<String, Object>) kakaoUserInfo.get("kakao_account");
-            if (kakaoAccount == null) {
-                return "카카오 사용자";
-            }
-
+            if (kakaoAccount == null) return "카카오 사용자";
             Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
-            if (profile == null) {
-                return "카카오 사용자";
-            }
-
+            if (profile == null) return "카카오 사용자";
             String nickname = (String) profile.get("nickname");
-            if (nickname == null || nickname.trim().isEmpty()) {
-                return "카카오 사용자";
-            }
-
-            return nickname;
-
+            return (nickname != null && !nickname.trim().isEmpty()) ? nickname : "카카오 사용자";
         } catch (Exception e) {
-            log.warn("닉네임 추출 실패, 기본값 사용", e);
             return "카카오 사용자";
         }
     }
 
-    /**
-     * 카카오 응답에서 프로필 이미지 추출
-     */
     private String extractProfileImage(Map<String, Object> kakaoUserInfo) {
+        // 프로필 이미지 추출 로직 유지
         try {
             Map<String, Object> kakaoAccount = (Map<String, Object>) kakaoUserInfo.get("kakao_account");
-            if (kakaoAccount == null) {
-                return null;
-            }
-
+            if (kakaoAccount == null) return null;
             Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
-            if (profile == null) {
-                return null;
-            }
-
+            if (profile == null) return null;
             return (String) profile.get("profile_image_url");
-
         } catch (Exception e) {
-            log.warn("프로필 이미지 추출 실패", e);
             return null;
         }
     }

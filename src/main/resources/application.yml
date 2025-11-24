@@ -1,18 +1,18 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/partition_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: root
 
   jpa:
     hibernate:
-      ddl-auto: create
-    show-sql: true
+      ddl-auto: update
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+    open-in-view: false
+    database-platform: org.hibernate.dialect.MySQLDialect
 
 springdoc:
   swagger-ui:
@@ -24,5 +24,5 @@ springdoc:
 
 jwt:
   secret: ${JWT_SECRET}
-  access-token-validity: 86400000 # 1?
-  refresh-token-validity: 604800000 # 7?
+  access-token-validity: 86400000 # 1
+  refresh-token-validity: 604800000 # 7
