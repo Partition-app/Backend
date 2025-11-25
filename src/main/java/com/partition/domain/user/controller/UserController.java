@@ -32,10 +32,10 @@ public class UserController {
         // 서비스 호출
         userService.updateName(userId, request.getName());
 
-        // 성공 응답 생성 (USER_2001)
+        // 성공 응답 생성
         return ResponseEntity.ok(
                 ApiResponse.onSuccess(
-                        "USER_2001",
+                        "200",
                         "회원 이름이 정상적으로 변경되었습니다.",
                         null
                 )
