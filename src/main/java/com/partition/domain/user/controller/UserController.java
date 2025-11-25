@@ -35,7 +35,7 @@ public class UserController {
         // 성공 응답 생성
         return ResponseEntity.ok(
                 ApiResponse.onSuccess(
-                        "USER_2001",
+                        "200",
                         "회원 이름이 정상적으로 변경되었습니다.",
                         null
                 )

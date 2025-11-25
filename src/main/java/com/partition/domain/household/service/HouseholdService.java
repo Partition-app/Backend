@@ -37,6 +37,11 @@ public class HouseholdService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
+        // 이미 그룹에 속해있는지 확인
+        if (user.getHouseholdId() != null) {
+            throw new CustomException(HouseholdErrorCode.ALREADY_JOINED);
+        }
+
         Household household = null;
 
         // 경쟁 조건(Race Condition) 해결을 위한 Optimistic Loop (최대 10회 시도)
