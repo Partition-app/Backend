@@ -26,6 +26,7 @@ public class UserPreferenceRequest {
         @NotNull(message = "집안일 종류는 필수입니다.")
         private ChoreType choreType;
 
+        @NotNull(message = "점수는 필수입니다.")
         @Min(value = 1, message = "점수는 1점 이상이어야 합니다.")
         @Max(value = 5, message = "점수는 5점 이하이어야 합니다.")
         private Integer score;
