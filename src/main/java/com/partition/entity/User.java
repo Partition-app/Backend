@@ -68,4 +68,13 @@ public class User extends BaseEntity {
         this.name = name;
         this.profileImage = profileImage;
     }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updateHousehold(Long householdId, UserRole role) {
+        this.householdId = householdId;
+        this.memberRole = role;
+    }
 }
