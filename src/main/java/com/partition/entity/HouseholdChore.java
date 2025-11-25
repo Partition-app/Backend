@@ -26,17 +26,25 @@ public class HouseholdChore {
     private ChoreType choreType;
 
     @Column(nullable = false)
-    private Integer difficulty; // 1~5 (기본값 3)
+    private Integer difficulty; // 1-5 (기본값 3)
+
+    @Column(nullable = false)
+    private Integer frequency; // 빈도 (주당 횟수)
 
     @Builder
-    public HouseholdChore(Household household, ChoreType choreType, Integer difficulty) {
+    public HouseholdChore(Household household, ChoreType choreType, Integer difficulty, Integer frequency) {
         this.household = household;
         this.choreType = choreType;
         this.difficulty = difficulty;
+        this.frequency = frequency;
     }
 
-    // 나중에 난이도 수정 API에서 사용 (setter 대신 비즈니스 메서드)
+    // 나중에 난이도 수정 API에서 사용
     public void updateDifficulty(Integer difficulty) {
         this.difficulty = difficulty;
+    }
+
+    public void updateFrequency(Integer frequency) {
+        this.frequency = frequency;
     }
 }

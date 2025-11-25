@@ -103,7 +103,8 @@ public class HouseholdService {
             HouseholdChore householdChore = HouseholdChore.builder()
                     .household(household)
                     .choreType(type)
-                    .difficulty(type.getDefaultDifficulty()) // Enum에 정의된 기본값(3) 사용
+                    .difficulty(type.getDefaultDifficulty())
+                    .frequency(type.getDefaultFrequency())
                     .build();
             householdChoreRepository.save(householdChore);
         }
