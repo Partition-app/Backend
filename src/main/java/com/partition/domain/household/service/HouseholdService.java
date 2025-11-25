@@ -23,7 +23,7 @@ public class HouseholdService {
     // 초대 코드 생성용 상수 (영문 대문자 + 숫자)
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
-    private final SecureRandom random = new SecureRandom();
+    private static final SecureRandom random = new SecureRandom();
 
     @Transactional
     public Household createHousehold(Long userId, String householdName) {
