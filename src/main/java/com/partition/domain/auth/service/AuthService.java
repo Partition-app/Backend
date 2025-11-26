@@ -79,6 +79,7 @@ public class AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .accessTokenExpiresIn(accessTokenValidity)
+                .userRole(user.getMemberRole())
                 .build();
     }
 

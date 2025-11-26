@@ -1,6 +1,7 @@
 package com.partition.domain.schedule.service;
 
 import com.partition.domain.schedule.dto.request.ScheduleRequest;
+import com.partition.domain.schedule.dto.request.ScheduleUpdateRequest;
 import com.partition.domain.schedule.exception.ScheduleErrorCode;
 import com.partition.domain.schedule.repository.ScheduleRepository;
 import com.partition.domain.user.exception.UserErrorCode;
@@ -36,7 +37,7 @@ public class ScheduleService {
     }
 
     // 일정 수정
-    public void updateSchedule(Long userId, Long scheduleId, ScheduleRequest request) {
+    public void updateSchedule(Long userId, Long scheduleId, ScheduleUpdateRequest request) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new CustomException(ScheduleErrorCode.SCHEDULE_NOT_FOUND));
 
@@ -45,7 +46,7 @@ public class ScheduleService {
             throw new CustomException(ScheduleErrorCode.NO_PERMISSION_TO_MODIFY);
         }
 
-        // 내용과 날짜만 업데이트 (시간은 null 처리 혹은 기존 유지 정책에 따라 변경 가능)
+        // 내용과 날짜만 업데이트 (값이 null이면 엔티티 내부에서 무시됨)
         schedule.update(request.getContent(), request.getDate(), null);
     }
 
