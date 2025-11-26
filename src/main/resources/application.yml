@@ -28,4 +28,4 @@ jwt:
   refresh-token-validity: 604800000 # 7
 
 fastapi:
-  url: http://3.27.77.244:8000/api/assign-chores
+  url: ${FASTAPI_URL}

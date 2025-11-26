@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -60,15 +61,16 @@ public class ChoreAssignmentService {
 
         // 4. FastAPI 호출 (트랜잭션 밖에서 수행 -> DB 커넥션 점유 시간 단축)
         log.info("FastAPI로 배정 요청 전송: householdId={}", householdId);
-        AssignmentResponse response = restTemplate.postForObject(FASTAPI_URL, request, AssignmentResponse.class);
+        AssignmentResponse response;
+        try {
+            response = restTemplate.postForObject(FASTAPI_URL, request, AssignmentResponse.class);
 
-        if (response == null || response.getAssignments() == null) {
-            throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_ERROR);
-        }
-
-        if (!householdId.equals(response.getHouseholdId())) {
-            log.warn("요청한 그룹({})과 응답 그룹({})이 일치하지 않습니다.", householdId, response.getHouseholdId());
-            throw new CustomException(ChoreErrorCode.HOUSEHOLD_ID_MISMATCH);
+            if (response == null || response.getAssignments() == null) {
+                throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_ERROR);
+            }
+        } catch (RestClientException e) {
+            log.error("FastAPI 호출 실패: {}", e.getMessage(), e);
+            throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_UNAVAILABLE);
         }
 
         // 5. 결과 저장 (별도 트랜잭션으로 실행)
