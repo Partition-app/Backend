@@ -16,5 +16,4 @@ public class CalendarDailyResponse {
     private String assigneeName; // 담당자 또는 작성자 이름
     private Boolean isCompleted; // 완료 여부 (일정은 false)
 
-    // time 필드 삭제됨
 }

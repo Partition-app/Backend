@@ -18,4 +18,11 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    // 일간 상세 조회용 (특정 날짜)
+    @Query("SELECT s FROM Schedule s JOIN FETCH s.user WHERE s.user.householdId = :householdId AND s.date = :date")
+    List<Schedule> findAllByHouseholdIdAndDate(
+            @Param("householdId") Long householdId,
+            @Param("date") LocalDate date
+    );
 }
