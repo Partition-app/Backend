@@ -53,4 +53,22 @@ public class ScheduleController {
                 ApiResponse.onSuccess("200", "일정 수정 성공", Map.of("scheduleId", scheduleId))
         );
     }
+
+    @Operation(summary = "일정 삭제", description = "일정을 삭제합니다.")
+    @DeleteMapping("/{scheduleId}")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> deleteSchedule(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long scheduleId) {
+
+        // 1. 유저 ID 추출
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        // 2. 서비스 호출 (권한 체크 및 삭제)
+        scheduleService.deleteSchedule(userId, scheduleId);
+
+        // 3. 성공 응답 (삭제된 ID 반환)
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "일정 삭제 성공", Map.of("scheduleId", scheduleId))
+        );
+    }
 }
