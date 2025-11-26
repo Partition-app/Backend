@@ -26,3 +26,6 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-validity: 86400000 # 1
   refresh-token-validity: 604800000 # 7
+
+fastapi:
+  url: ${FASTAPI_URL}
