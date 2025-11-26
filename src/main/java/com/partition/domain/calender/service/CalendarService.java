@@ -30,6 +30,7 @@ public class CalendarService {
     private final ChoreRepository choreRepository;
     private final UtilityBillRepository utilityBillRepository;
 
+    // 월간 캘린더 조회 (점 표시용 데이터 집계)
     @Transactional(readOnly = true)
     public List<CalendarMonthlyResponse> getMonthlyCalendar(Long userId, int year, int month) {
         User user = userRepository.findById(userId)
@@ -62,7 +63,7 @@ public class CalendarService {
                 .collect(Collectors.toList());
     }
 
-    // 일간 상세 조회
+    // 일간 상세 조회 (집안일 + 일정 통합 리스트)
     @Transactional(readOnly = true)
     public List<CalendarDailyResponse> getDailyCalendar(Long userId, LocalDate date) {
         User user = userRepository.findById(userId)
@@ -80,11 +81,13 @@ public class CalendarService {
                         .category("CHORE")
                         .id(chore.getId())
                         .title(chore.getType().getDescription())
+                        // [수정] 담당자가 null일 경우 NPE 방지 (Optional 사용)
                         .assigneeName(
                                 Optional.ofNullable(chore.getAssignee())
                                         .map(User::getName)
-                                        .orElse(null) // 담당자가 없으면 null 반환
-                        )                        .isCompleted(chore.isCompleted())
+                                        .orElse(null)
+                        )
+                        .isCompleted(chore.isCompleted())
                         .build())
                 .toList();
 
@@ -100,12 +103,13 @@ public class CalendarService {
                         .build())
                 .toList();
 
-        // 3. 두 리스트 합치기 (정렬: 카테고리순 CHORE -> SCHEDULE)
+        // 3. 두 리스트 합치기 (정렬: CHORE -> SCHEDULE)
         return Stream.concat(chores.stream(), schedules.stream())
-                .sorted(Comparator.comparing(CalendarDailyResponse::getCategory)) // CHORE가 먼저 오게 정렬 (알파벳순 C < S)
+                .sorted(Comparator.comparing(CalendarDailyResponse::getCategory))
                 .collect(Collectors.toList());
     }
 
+    // 내부 클래스: 날짜별 개수 집계용
     private static class MonthlyCounts {
         long scheduleCount = 0;
         long choreCount = 0;
