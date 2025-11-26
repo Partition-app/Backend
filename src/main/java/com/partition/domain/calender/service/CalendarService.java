@@ -80,8 +80,11 @@ public class CalendarService {
                         .category("CHORE")
                         .id(chore.getId())
                         .title(chore.getType().getDescription())
-                        .assigneeName(chore.getAssignee().getName())
-                        .isCompleted(chore.isCompleted())
+                        .assigneeName(
+                                Optional.ofNullable(chore.getAssignee())
+                                        .map(User::getName)
+                                        .orElse(null) // 담당자가 없으면 null 반환
+                        )                        .isCompleted(chore.isCompleted())
                         .build())
                 .toList();
 

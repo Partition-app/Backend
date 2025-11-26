@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @Getter
 @Table(name = "chores")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Chore {
+public class Chore extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
