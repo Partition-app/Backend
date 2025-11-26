@@ -1,0 +1,55 @@
+package com.partition.domain.calender.controller;
+
+import com.partition.domain.calender.dto.response.CalendarDailyResponse;
+import com.partition.domain.calender.dto.response.CalendarMonthlyResponse;
+import com.partition.domain.calender.service.CalendarService;
+import com.partition.domain.common.dto.response.ApiResponse;
+import com.partition.global.config.security.CustomUserDetails;
+import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/calendars")
+@RequiredArgsConstructor
+public class CalendarController {
+
+    private final CalendarService calendarService;
+
+    @Operation(summary = "월간 캘린더 조회", description = "특정 월의 날짜별 일정(일정, 집안일, 공과금) 개수를 반환합니다.")
+    @GetMapping("/monthly")
+    public ResponseEntity<ApiResponse<List<CalendarMonthlyResponse>>> getMonthlyCalendar(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam int year,
+            @RequestParam int month) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        List<CalendarMonthlyResponse> result = calendarService.getMonthlyCalendar(userId, year, month);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "월간 캘린더 조회 성공", result)
+        );
+    }
+
+    @Operation(summary = "일간 상세 조회", description = "특정 날짜의 상세 일정(집안일, 일정) 목록을 반환합니다.")
+    @GetMapping("/daily")
+    public ResponseEntity<ApiResponse<List<CalendarDailyResponse>>> getDailyCalendar(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam LocalDate date) { // yyyy-MM-dd 형식 자동 매핑
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        List<CalendarDailyResponse> result = calendarService.getDailyCalendar(userId, date);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "일간 상세 조회 성공", result)
+        );
+    }
+}
