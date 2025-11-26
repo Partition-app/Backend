@@ -15,7 +15,7 @@ public enum ChoreType {
     VACUUM("청소기 돌리기", 3, 3),
     MOPPING("바닥 닦기", 3, 2),
     WINDOW("창문, 창틀 닦기", 3, 1),
-    BATHROOM("화장실 청소하기", 3, 2),
+    BATHROOM("화장실 청소하기", 3, 1),
     FRIDGE("냉장고 청소하기", 3, 1);
 
     private final String description;
