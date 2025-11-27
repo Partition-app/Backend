@@ -2,6 +2,7 @@ package com.partition.domain.household.controller;
 
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.household.dto.request.CreateHouseholdRequest;
+import com.partition.domain.household.dto.request.JoinHouseholdRequest;
 import com.partition.domain.household.service.HouseholdService;
 import com.partition.entity.Household;
 import com.partition.global.config.security.CustomUserDetails;
@@ -44,6 +45,31 @@ public class HouseholdController {
                         Map.of(
                                 "householdId", household.getId(),
                                 "inviteCode", household.getInviteCode()
+                        )
+                )
+        );
+    }
+
+
+    // 기존 그룹 참여 API
+    @Operation(summary = "그룹 참여하기", description = "초대 코드를 입력하여 기존 그룹에 참여합니다.")
+    @PostMapping("/join")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> joinHousehold(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid JoinHouseholdRequest request) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        // 서비스 호출
+        Household household = householdService.joinHousehold(userId, request.getInviteCode());
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess(
+                        "200",
+                        "그룹 참여 성공",
+                        Map.of(
+                                "householdId", household.getId(),
+                                "householdName", household.getName()
                         )
                 )
         );
