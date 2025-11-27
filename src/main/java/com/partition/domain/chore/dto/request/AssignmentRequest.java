@@ -1,5 +1,6 @@
 package com.partition.domain.chore.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +15,9 @@ import java.util.List;
 @AllArgsConstructor
 public class AssignmentRequest {
     private Long householdId;
+    @JsonFormat
     private LocalDate startDate;
+    @JsonFormat
     private LocalDate endDate;
     private List<UserDto> users;
     private List<ChoreInfo> chores;
