@@ -15,9 +15,9 @@ import java.util.List;
 @AllArgsConstructor
 public class AssignmentRequest {
     private Long householdId;
-    @JsonFormat
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate startDate;
-    @JsonFormat
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate endDate;
     private List<UserDto> users;
     private List<ChoreInfo> chores;
