@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class AssignmentResponse {
 
+
     private Long householdId;
     private List<AssignmentResult> assignments;
 
