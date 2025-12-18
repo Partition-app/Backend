@@ -41,7 +41,7 @@ public class ChoreAssignmentService {
     private String FASTAPI_URL;
 
     public void assignChores(Long userId, LocalDate startDate, int periodDays) {
-        // 1. 요청자 및 그룹 확인 (단순 조회이므로 트랜잭션 없어도 무방하거나, readOnly 트랜잭션 사용 가능)
+        // 요청자 및 그룹 확인 (단순 조회이므로 트랜잭션 없어도 무방하거나, readOnly 트랜잭션 사용 가능)
         User requester = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
@@ -51,15 +51,15 @@ public class ChoreAssignmentService {
         Long householdId = requester.getHouseholdId();
         LocalDate endDate = startDate.plusDays(periodDays - 1);
 
-        // 2. 데이터 수집
+        // 데이터 수집
         List<User> members = userRepository.findByHouseholdId(householdId);
         List<HouseholdChore> householdChores = householdChoreRepository.findByHouseholdId(householdId);
         List<UserChorePreference> preferences = preferenceRepository.findAllByHouseholdId(householdId);
 
-        // 3. DTO 변환
+        // DTO 변환
         AssignmentRequest request = createRequest(householdId, startDate, endDate, members, householdChores, preferences);
 
-        // 4. FastAPI 호출 (트랜잭션 밖에서 수행 -> DB 커넥션 점유 시간 단축)
+        // FastAPI 호출 (트랜잭션 밖에서 수행 -> DB 커넥션 점유 시간 단축)
         log.info("FastAPI로 배정 요청 전송: householdId={}", householdId);
         AssignmentResponse response;
         try {
@@ -73,7 +73,7 @@ public class ChoreAssignmentService {
             throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_UNAVAILABLE);
         }
 
-        // 5. 결과 저장 (별도 트랜잭션으로 실행)
+        // 결과 저장 (별도 트랜잭션으로 실행)
         saveAssignmentsInTransaction(response, members, householdChores);
 
         log.info("집안일 배정 완료: 총 {}건", response.getAssignments().size());

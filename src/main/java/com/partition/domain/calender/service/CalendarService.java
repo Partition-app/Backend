@@ -30,7 +30,7 @@ public class CalendarService {
     private final ChoreRepository choreRepository;
     private final UtilityBillRepository utilityBillRepository;
 
-    // 월간 캘린더 조회 (점 표시용 데이터 집계)
+    // 월간 캘린더 조회
     @Transactional(readOnly = true)
     public List<CalendarMonthlyResponse> getMonthlyCalendar(Long userId, int year, int month) {
         User user = userRepository.findById(userId)
@@ -74,14 +74,13 @@ public class CalendarService {
         }
         Long householdId = user.getHouseholdId();
 
-        // 1. 해당 날짜의 집안일(Chore) 조회 -> DTO 변환
+        // 해당 날짜의 집안일(Chore) 조회 -> DTO 변환
         List<CalendarDailyResponse> chores = choreRepository.findAllByHouseholdIdAndDateRange(householdId, date, date)
                 .stream()
                 .map(chore -> CalendarDailyResponse.builder()
                         .category("CHORE")
                         .id(chore.getId())
                         .title(chore.getType().getDescription())
-                        // [수정] 담당자가 null일 경우 NPE 방지 (Optional 사용)
                         .assigneeName(
                                 Optional.ofNullable(chore.getAssignee())
                                         .map(User::getName)
@@ -91,7 +90,7 @@ public class CalendarService {
                         .build())
                 .toList();
 
-        // 2. 해당 날짜의 일정(Schedule) 조회 -> DTO 변환
+        // 해당 날짜의 일정(Schedule) 조회 -> DTO 변환
         List<CalendarDailyResponse> schedules = scheduleRepository.findAllByHouseholdIdAndDateRange(householdId, date, date)
                 .stream()
                 .map(schedule -> CalendarDailyResponse.builder()
@@ -103,7 +102,7 @@ public class CalendarService {
                         .build())
                 .toList();
 
-        // 3. 두 리스트 합치기 (정렬: CHORE -> SCHEDULE)
+        // 두 리스트 합치기 (정렬: CHORE -> SCHEDULE)
         return Stream.concat(chores.stream(), schedules.stream())
                 .sorted(Comparator.comparing(CalendarDailyResponse::getCategory))
                 .collect(Collectors.toList());

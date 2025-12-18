@@ -26,12 +26,12 @@ public class UserPreferenceService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
-        // 1. 중복 방지를 위해 해당 유저의 기존 선호도 데이터 삭제
+        // 중복 방지를 위해 해당 유저의 기존 선호도 데이터 삭제
         preferenceRepository.deleteByUserId(userId);
 
         List<UserPreferenceRequest.PreferenceDto> savedList = new ArrayList<>();
 
-        // 2. 새로운 선호도 리스트 저장
+        // 새로운 선호도 리스트 저장
         for (UserPreferenceRequest.PreferenceDto dto : request.getPreferences()) {
             UserChorePreference preference = UserChorePreference.builder()
                     .user(user)

@@ -19,8 +19,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
-        // User 엔티티에 있는 updateName 편의 메서드를 호출합니다.
-        // (User 엔티티에 public void updateName(String name) { this.name = name; } 이 있어야 합니다)
+        // User 엔티티에 있는 updateName 편의 메서드를 호출
         user.updateName(newName);
     }
 }

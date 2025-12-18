@@ -60,13 +60,13 @@ public class ScheduleController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long scheduleId) {
 
-        // 1. 유저 ID 추출
+        // 유저 ID 추출
         Long userId = Long.parseLong(userDetails.getUsername());
 
-        // 2. 서비스 호출 (권한 체크 및 삭제)
+        // 서비스 호출 (권한 체크 및 삭제)
         scheduleService.deleteSchedule(userId, scheduleId);
 
-        // 3. 성공 응답 (삭제된 ID 반환)
+        // 성공 응답 (삭제된 ID 반환)
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("200", "일정 삭제 성공", Map.of("scheduleId", scheduleId))
         );
