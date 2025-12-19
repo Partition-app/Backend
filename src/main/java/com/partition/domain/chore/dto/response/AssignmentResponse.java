@@ -1,5 +1,6 @@
 package com.partition.domain.chore.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,7 +22,7 @@ public class AssignmentResponse {
     @Setter
     public static class AssignmentResult {
         private Long userId;
-        private Long choreId;   // HouseholdChore의 ID (설정값 ID)
-        private LocalDate date; // "2025-11-21" 문자열이 LocalDate로 자동 매핑됨
-    }
+        private Long choreId;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+        private LocalDate date;    }
 }
