@@ -1,14 +1,18 @@
 package com.partition.domain.schedule.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Getter
 @NoArgsConstructor
 public class ScheduleUpdateRequest {
-    // 수정할 때 값이 안 넘어오면(null이면) 기존 값을 유지하기 위해 Validation 어노테이션을 뺐습니다.
+    @NotBlank(message = "내용은 필수입니다.")
     private String content;
-    private LocalDate date;
+
+    private LocalDate date;   // 변경 없으면 null 가능
+    private LocalTime time;   // 시간을 지우려면 null로 보내면 됨
 }
