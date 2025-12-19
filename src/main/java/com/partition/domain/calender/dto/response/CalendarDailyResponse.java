@@ -15,5 +15,5 @@ public class CalendarDailyResponse {
     private String title;        // 제목 (내용)
     private String assigneeName; // 담당자 또는 작성자 이름
     private Boolean isCompleted; // 완료 여부 (일정은 false)
-
+    private Boolean isOwner;
 }
