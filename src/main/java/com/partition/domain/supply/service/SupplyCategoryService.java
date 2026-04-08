@@ -13,12 +13,15 @@ import com.partition.entity.enums.SupplyCategoryType;
 import com.partition.entity.enums.SupplySubCategoryType;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +41,32 @@ public class SupplyCategoryService {
                             .subCategory(subCategoryType)
                             .build()
             );
+        }
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void syncMissingCategories() {
+        List<Household> households = householdRepository.findAll();
+        Set<SupplySubCategoryType> allSubCategories = Set.of(SupplySubCategoryType.values());
+
+        for (Household household : households) {
+            Set<SupplySubCategoryType> existing = supplyCategoryRepository
+                    .findAllByHouseholdIdOrderByCategoryAscSubCategoryAsc(household.getId())
+                    .stream()
+                    .map(SupplyCategory::getSubCategory)
+                    .collect(Collectors.toSet());
+
+            for (SupplySubCategoryType subCategoryType : allSubCategories) {
+                if (!existing.contains(subCategoryType)) {
+                    supplyCategoryRepository.save(
+                            SupplyCategory.builder()
+                                    .household(household)
+                                    .category(subCategoryType.getCategoryType())
+                                    .subCategory(subCategoryType)
+                                    .build()
+                    );
+                }
+            }
         }
     }
 
