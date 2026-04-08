@@ -63,7 +63,7 @@ public class ChoreAssignmentService {
         log.info("FastAPI로 배정 요청 전송: householdId={}", householdId);
         AssignmentResponse response;
         try {
-            response = restTemplate.postForObject(FASTAPI_URL, request, AssignmentResponse.class);
+            response = restTemplate.postForObject(FASTAPI_URL + "/api/chores/assign", request, AssignmentResponse.class);
 
             if (response == null || response.getAssignments() == null) {
                 throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_ERROR);
