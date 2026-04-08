@@ -13,4 +13,10 @@ public interface SupplyPurchaseRepository extends JpaRepository<SupplyPurchase, 
             LocalDate startDate,
             LocalDate endDate
     );
+
+    List<SupplyPurchase> findAllByHouseholdIdAndIsSettledFalseAndPurchaseDateBetweenOrderByPurchaseDateAscIdAsc(
+            Long householdId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 }

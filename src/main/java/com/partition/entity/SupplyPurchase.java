@@ -43,6 +43,10 @@ public class SupplyPurchase extends BaseEntity {
     @Column(name = "is_settled", nullable = false)
     private Boolean isSettled;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "settlement_id")
+    private Settlement settlement;
+
     @Builder
     public SupplyPurchase(Household household, SupplyCategory supplyCategory, String itemName, LocalDate purchaseDate,
                           Integer amount, Integer quantity, Boolean isSettled) {
@@ -53,5 +57,18 @@ public class SupplyPurchase extends BaseEntity {
         this.amount = amount;
         this.quantity = quantity;
         this.isSettled = isSettled;
+    }
+
+    public void update(String itemName, LocalDate purchaseDate, Integer amount, Integer quantity, SupplyCategory supplyCategory) {
+        if (itemName != null) this.itemName = itemName;
+        if (purchaseDate != null) this.purchaseDate = purchaseDate;
+        if (amount != null) this.amount = amount;
+        if (quantity != null) this.quantity = quantity;
+        if (supplyCategory != null) this.supplyCategory = supplyCategory;
+    }
+
+    public void settle(Settlement settlement) {
+        this.isSettled = true;
+        this.settlement = settlement;
     }
 }
