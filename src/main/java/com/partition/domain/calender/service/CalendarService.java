@@ -99,6 +99,7 @@ public class CalendarService {
                         .title(schedule.getContent())
                         .assigneeName(schedule.getUser().getName())
                         .isCompleted(false)
+                        .isOwner(Objects.equals(schedule.getUser().getId(), userId))
                         .build())
                 .toList();
 

@@ -12,6 +12,7 @@ import com.partition.entity.Chore;
 import com.partition.entity.HouseholdChore;
 import com.partition.entity.User;
 import com.partition.entity.UserChorePreference;
+import com.partition.entity.enums.ChoreType;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,10 +39,9 @@ public class ChoreAssignmentService {
     private final ChoreRepository choreRepository;
 
     @Value("${fastapi.url}")
-    private String FASTAPI_URL;
+    private String aiServerUrl;
 
-    public void assignChores(Long userId, LocalDate startDate, int periodDays) {
-        // 요청자 및 그룹 확인 (단순 조회이므로 트랜잭션 없어도 무방하거나, readOnly 트랜잭션 사용 가능)
+    public List<AssignmentResponse.AssignmentResult> assignChores(Long userId, LocalDate startDate, int periodDays, List<ChoreType> targetChoreTypes) {
         User requester = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
@@ -51,15 +51,19 @@ public class ChoreAssignmentService {
         Long householdId = requester.getHouseholdId();
         LocalDate endDate = startDate.plusDays(periodDays - 1);
 
-        // 데이터 수집
         List<User> members = userRepository.findByHouseholdId(householdId);
         List<HouseholdChore> householdChores = householdChoreRepository.findByHouseholdId(householdId);
+
+        if (targetChoreTypes != null && !targetChoreTypes.isEmpty()) {
+            householdChores = householdChores.stream()
+                    .filter(hc -> targetChoreTypes.contains(hc.getChoreType()))
+                    .collect(Collectors.toList());
+        }
+
         List<UserChorePreference> preferences = preferenceRepository.findAllByHouseholdId(householdId);
 
-        // DTO 변환
         AssignmentRequest request = createRequest(householdId, startDate, endDate, members, householdChores, preferences);
 
-        // FastAPI 호출 (트랜잭션 밖에서 수행 -> DB 커넥션 점유 시간 단축)
         log.info("FastAPI로 배정 요청 전송: householdId={}", householdId);
         AssignmentResponse response;
         try {
@@ -73,16 +77,15 @@ public class ChoreAssignmentService {
             throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_UNAVAILABLE);
         }
 
-        // 결과 저장 (별도 트랜잭션으로 실행)
         saveAssignmentsInTransaction(response, members, householdChores);
 
         log.info("집안일 배정 완료: 총 {}건", response.getAssignments().size());
+
+        return response.getAssignments();
     }
 
-    // 저장 로직만 트랜잭션으로 묶음
     @Transactional
     public void saveAssignmentsInTransaction(AssignmentResponse response, List<User> members, List<HouseholdChore> householdChores) {
-        // 검색 성능을 위한 Map 생성
         Map<Long, User> userMap = members.stream().collect(Collectors.toMap(User::getId, u -> u));
         Map<Long, HouseholdChore> choreMap = householdChores.stream().collect(Collectors.toMap(HouseholdChore::getId, c -> c));
 
@@ -125,7 +128,7 @@ public class ChoreAssignmentService {
                 .collect(Collectors.toMap(
                         c -> c.getChoreType().name(),
                         HouseholdChore::getId,
-                        (existing, replacement) -> existing // 중복 키 발생 시 기존 값 유지 (Duplicate Key Exception 방지)
+                        (existing, replacement) -> existing
                 ));
 
         List<AssignmentRequest.PreferenceDto> prefDtos = preferences.stream()

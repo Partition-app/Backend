@@ -43,7 +43,7 @@ public class ScheduleService {
 
         // 작성자 본인 확인
         if (!schedule.getUser().getId().equals(userId)) {
-            throw new CustomException(ScheduleErrorCode.NO_PERMISSION_TO_MODIFY);
+            throw new CustomException(ScheduleErrorCode.NO_PERMISSION);
         }
 
         // 내용과 날짜만 업데이트 (값이 null이면 엔티티 내부에서 무시됨)
@@ -57,7 +57,7 @@ public class ScheduleService {
 
         // 작성자 본인 확인
         if (!schedule.getUser().getId().equals(userId)) {
-            throw new CustomException(ScheduleErrorCode.NO_PERMISSION_TO_DELETE);
+            throw new CustomException(ScheduleErrorCode.NO_PERMISSION);
         }
 
         scheduleRepository.delete(schedule);
