@@ -117,6 +117,8 @@ public class SupplyPurchaseService {
                         .amount(purchase.getAmount())
                         .quantity(purchase.getQuantity())
                         .isSettled(purchase.getIsSettled())
+                        .category(purchase.getSupplyCategory().getCategory().name())
+                        .subCategory(purchase.getSupplyCategory().getSubCategory().name())
                         .build())
                 .toList();
 
