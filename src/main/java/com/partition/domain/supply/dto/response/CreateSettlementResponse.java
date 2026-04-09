@@ -23,6 +23,7 @@ public class CreateSettlementResponse {
     public static class SettlementMemberResponse {
         private Long userId;
         private String name;
+        private int amount;
     }
 
     @Getter

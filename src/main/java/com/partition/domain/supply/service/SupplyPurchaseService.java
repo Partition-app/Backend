@@ -197,11 +197,6 @@ public class SupplyPurchaseService {
             throw new CustomException(SupplyErrorCode.SUPPLY_3010);
         }
 
-        // 정산된 구매 기록 수정 불가
-        if (Boolean.TRUE.equals(purchase.getIsSettled())) {
-            throw new CustomException(SupplyErrorCode.SUPPLY_3011);
-        }
-
         // 각 필드 유효성 검증 (전달된 경우에만)
         String trimmedItemName = null;
         if (request.getItemName() != null) {

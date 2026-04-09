@@ -24,9 +24,13 @@ public class SettlementMember {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private int amount;
+
     @Builder
-    public SettlementMember(Settlement settlement, User user) {
+    public SettlementMember(Settlement settlement, User user, int amount) {
         this.settlement = settlement;
         this.user = user;
+        this.amount = amount;
     }
 }
