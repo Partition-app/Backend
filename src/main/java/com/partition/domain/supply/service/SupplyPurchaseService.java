@@ -169,11 +169,13 @@ public class SupplyPurchaseService {
         // 정산
         int totalAmount = purchases.stream().mapToInt(SettlementPurchaseResponse::getAmount).sum();
         int amountPerMember = memberCount > 0 ? totalAmount / memberCount : 0;
+        int remainder = memberCount > 0 ? totalAmount % memberCount : 0;
 
         return SettlementListResponse.builder()
                 .totalCount(purchases.size())
                 .totalAmount(totalAmount)
                 .amountPerMember(amountPerMember)
+                .remainder(remainder)
                 .memberCount(memberCount)
                 .purchases(purchases)
                 .build();
