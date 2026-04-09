@@ -74,6 +74,7 @@ public class SettlementService {
         int totalAmount = purchases.stream().mapToInt(SupplyPurchase::getAmount).sum();
         int memberCount = members.size();
         int amountPerMember = memberCount > 0 ? totalAmount / memberCount : 0;
+        int remainder = memberCount > 0 ? totalAmount % memberCount : 0;
 
         // Settlement 저장
         Household household = purchases.get(0).getHousehold();
@@ -86,15 +87,18 @@ public class SettlementService {
                         .build()
         );
 
-        // SettlementMember 저장
-        members.forEach(member ->
-                settlementMemberRepository.save(
-                        SettlementMember.builder()
-                                .settlement(settlement)
-                                .user(member)
-                                .build()
-                )
-        );
+        // SettlementMember 저장 (첫 remainder명에게 +1원 배정)
+        List<SettlementMember> savedMembers = new java.util.ArrayList<>();
+        for (int i = 0; i < members.size(); i++) {
+            int memberAmount = amountPerMember + (i < remainder ? 1 : 0);
+            savedMembers.add(settlementMemberRepository.save(
+                    SettlementMember.builder()
+                            .settlement(settlement)
+                            .user(members.get(i))
+                            .amount(memberAmount)
+                            .build()
+            ));
+        }
 
         // 구매 기록 정산 처리
         purchases.forEach(purchase -> purchase.settle(settlement));
@@ -105,10 +109,11 @@ public class SettlementService {
                 .memberCount(memberCount)
                 .amountPerMember(amountPerMember)
                 .settledAt(settlement.getCreatedAt())
-                .members(members.stream()
-                        .map(m -> CreateSettlementResponse.SettlementMemberResponse.builder()
-                                .userId(m.getId())
-                                .name(m.getName())
+                .members(savedMembers.stream()
+                        .map(sm -> CreateSettlementResponse.SettlementMemberResponse.builder()
+                                .userId(sm.getUser().getId())
+                                .name(sm.getUser().getName())
+                                .amount(sm.getAmount())
                                 .build())
                         .toList())
                 .items(purchases.stream()

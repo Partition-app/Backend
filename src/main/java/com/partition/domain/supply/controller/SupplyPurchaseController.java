@@ -2,9 +2,12 @@ package com.partition.domain.supply.controller;
 
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.supply.dto.request.CreateSupplyPurchaseRequest;
+import com.partition.domain.supply.dto.request.UpdateSupplyPurchaseRequest;
 import com.partition.domain.supply.dto.response.CreateSupplyPurchaseResponse;
 import com.partition.domain.supply.dto.response.ReceiptAnalysisResponse;
+
 import com.partition.domain.supply.dto.response.SupplyPurchaseListResponse;
+import com.partition.domain.supply.dto.response.UpdateSupplyPurchaseResponse;
 import com.partition.domain.supply.service.ReceiptAnalysisService;
 import com.partition.domain.supply.service.SupplyPurchaseService;
 import com.partition.global.config.security.CustomUserDetails;
@@ -46,6 +49,21 @@ public class SupplyPurchaseController {
 
         return ResponseEntity.status(201)
                 .body(ApiResponse.onSuccess("201", "공용 소비 물품 구매 기록 등록 성공", result));
+    }
+
+    @Operation(summary = "공용 소비 물품 구매 기록 수정", description = "변경할 필드만 포함하여 구매 기록을 수정합니다.")
+    @PatchMapping("/{purchaseId}")
+    public ResponseEntity<ApiResponse<UpdateSupplyPurchaseResponse>> updatePurchase(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long purchaseId,
+            @RequestBody UpdateSupplyPurchaseRequest request
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        UpdateSupplyPurchaseResponse result = supplyPurchaseService.updatePurchase(userId, purchaseId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "공용 소비 물품 구매 기록 수정 성공", result)
+        );
     }
 
     @Operation(summary = "공용 소비 물품 구매 기록 조회", description = "기간 내 공용 소비 물품 구매 기록을 조회합니다.")

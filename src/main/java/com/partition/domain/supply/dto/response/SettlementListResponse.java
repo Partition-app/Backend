@@ -12,6 +12,7 @@ public class SettlementListResponse {
     private int totalCount;
     private int totalAmount;
     private int amountPerMember;
+    private int remainder;
     private int memberCount;
     private List<SettlementPurchaseResponse> purchases;
 }

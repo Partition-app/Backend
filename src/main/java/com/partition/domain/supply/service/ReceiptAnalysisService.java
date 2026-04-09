@@ -49,11 +49,11 @@ public class ReceiptAnalysisService {
 
             HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<List> response = restTemplate.exchange(
-                    fastapiUrl + "/api/receipt/analyze",
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    fastapiUrl + "/api/receipts/recognize",
                     HttpMethod.POST,
                     entity,
-                    List.class
+                    Map.class
             );
 
             return parseResponse(response.getBody());
@@ -92,15 +92,26 @@ public class ReceiptAnalysisService {
     }
 
     @SuppressWarnings("unchecked")
-    private ReceiptAnalysisResponse parseResponse(List rawList) {
-        if (rawList == null) {
+    private ReceiptAnalysisResponse parseResponse(Map<String, Object> responseBody) {
+        if (responseBody == null) {
             throw new CustomException(SupplyErrorCode.SUPPLY_4003);
         }
-        if (rawList.isEmpty()) {
+
+        Boolean success = (Boolean) responseBody.get("success");
+        if (!Boolean.TRUE.equals(success)) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_4003);
+        }
+
+        List<Map<String, Object>> rawItems = (List<Map<String, Object>>) responseBody.get("items");
+        if (rawItems == null || rawItems.isEmpty()) {
             throw new CustomException(SupplyErrorCode.SUPPLY_4004);
         }
 
-        List<Map<String, Object>> rawItems = (List<Map<String, Object>>) rawList;
+        boolean hasValidItem = rawItems.stream()
+                .anyMatch(item -> item != null && item.values().stream().anyMatch(v -> v != null));
+        if (!hasValidItem) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_4004);
+        }
 
         List<ReceiptItemResponse> items = rawItems.stream()
                 .map(this::mapToReceiptItem)

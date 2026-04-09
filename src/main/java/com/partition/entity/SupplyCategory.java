@@ -30,11 +30,11 @@ public class SupplyCategory extends BaseEntity {
     private Household household;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false)
+    @Column(name = "category", nullable = false, columnDefinition = "varchar(50)")
     private SupplyCategoryType category;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "sub_category", nullable = false)
+    @Column(name = "sub_category", nullable = false, columnDefinition = "varchar(50)")
     private SupplySubCategoryType subCategory;
 
     @Builder

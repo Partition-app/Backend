@@ -39,7 +39,7 @@ public class ChoreAssignmentService {
     private final ChoreRepository choreRepository;
 
     @Value("${fastapi.url}")
-    private String aiServerUrl;
+    private String FASFASTAPI_URL;
 
     public List<AssignmentResponse.AssignmentResult> assignChores(Long userId, LocalDate startDate, int periodDays, List<ChoreType> targetChoreTypes) {
         User requester = userRepository.findById(userId)
@@ -67,7 +67,7 @@ public class ChoreAssignmentService {
         log.info("FastAPI로 배정 요청 전송: householdId={}", householdId);
         AssignmentResponse response;
         try {
-            response = restTemplate.postForObject(aiServerUrl, request, AssignmentResponse.class);
+            response = restTemplate.postForObject(FASFASTAPI_URL + "/api/chores/assign", request, AssignmentResponse.class);
 
             if (response == null || response.getAssignments() == null) {
                 throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_ERROR);

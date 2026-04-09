@@ -11,6 +11,7 @@ public enum SupplyCategoryType {
     CLEANING("청소용품"),
     HYGIENE("위생용품"),
     GROCERY("식료품"),
+    LIVING("생활용품"),
     ETC("기타");
 
     private final String label;
