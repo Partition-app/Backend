@@ -15,4 +15,6 @@ public class SupplyPurchaseResultResponse {
     private Integer amount;
     private Integer quantity;
     private Boolean isSettled;
+    private String category;
+    private String subCategory;
 }

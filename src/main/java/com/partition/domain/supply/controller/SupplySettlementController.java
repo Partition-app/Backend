@@ -46,6 +46,6 @@ public class SupplySettlementController {
         CreateSettlementResponse result = settlementService.createSettlement(userId, request);
 
         return ResponseEntity.status(201)
-                .body(ApiResponse.onSuccess("201", "정산 처리 성공", result));
+                .body(ApiResponse.onSuccess("201", "정산 메세지 발송 성공", result));
     }
 }
