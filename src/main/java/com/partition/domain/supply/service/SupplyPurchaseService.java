@@ -183,10 +183,22 @@ public class SupplyPurchaseService {
      * 구매 내역 수정 (변경된 필드만 반영)
      */
     @Transactional
-    public UpdateSupplyPurchaseResponse updatePurchase(Long purchaseId, UpdateSupplyPurchaseRequest request) {
+    public UpdateSupplyPurchaseResponse updatePurchase(Long userId, Long purchaseId, UpdateSupplyPurchaseRequest request) {
         // 구매 내역 조회
         SupplyPurchase purchase = supplyPurchaseRepository.findById(purchaseId)
                 .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_3009));
+
+        // 호출자 가구 소유권 확인
+        User caller = getUser(userId);
+        Household callerHousehold = getHousehold(caller);
+        if (!callerHousehold.getId().equals(purchase.getHousehold().getId())) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_3010);
+        }
+
+        // 정산된 구매 기록 수정 불가
+        if (Boolean.TRUE.equals(purchase.getIsSettled())) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_3011);
+        }
 
         // 각 필드 유효성 검증 (전달된 경우에만)
         String trimmedItemName = null;

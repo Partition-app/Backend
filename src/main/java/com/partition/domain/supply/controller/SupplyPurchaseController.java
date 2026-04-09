@@ -54,10 +54,12 @@ public class SupplyPurchaseController {
     @Operation(summary = "공용 소비 물품 구매 기록 수정", description = "변경할 필드만 포함하여 구매 기록을 수정합니다.")
     @PatchMapping("/{purchaseId}")
     public ResponseEntity<ApiResponse<UpdateSupplyPurchaseResponse>> updatePurchase(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long purchaseId,
             @RequestBody UpdateSupplyPurchaseRequest request
     ) {
-        UpdateSupplyPurchaseResponse result = supplyPurchaseService.updatePurchase(purchaseId, request);
+        Long userId = Long.parseLong(userDetails.getUsername());
+        UpdateSupplyPurchaseResponse result = supplyPurchaseService.updatePurchase(userId, purchaseId, request);
 
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("200", "공용 소비 물품 구매 기록 수정 성공", result)

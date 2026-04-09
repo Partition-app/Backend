@@ -98,12 +98,18 @@ public class ReceiptAnalysisService {
         }
 
         Boolean success = (Boolean) responseBody.get("success");
-        if (Boolean.FALSE.equals(success)) {
+        if (!Boolean.TRUE.equals(success)) {
             throw new CustomException(SupplyErrorCode.SUPPLY_4003);
         }
 
         List<Map<String, Object>> rawItems = (List<Map<String, Object>>) responseBody.get("items");
         if (rawItems == null || rawItems.isEmpty()) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_4004);
+        }
+
+        boolean hasValidItem = rawItems.stream()
+                .anyMatch(item -> item != null && item.values().stream().anyMatch(v -> v != null));
+        if (!hasValidItem) {
             throw new CustomException(SupplyErrorCode.SUPPLY_4004);
         }
 
