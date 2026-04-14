@@ -50,7 +50,7 @@ public class ReceiptAnalysisService {
             HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
 
             ResponseEntity<Map> response = restTemplate.exchange(
-                    fastapiUrl + "/api/receipts/recognize",
+                    fastapiUrl + "/api/receipts/process",
                     HttpMethod.POST,
                     entity,
                     Map.class
