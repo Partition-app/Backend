@@ -1,5 +1,7 @@
 package com.partition.entity;
 
+import com.partition.entity.enums.SupplyCategoryType;
+import com.partition.entity.enums.SupplySubCategoryType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -24,9 +26,13 @@ public class SupplyPurchase extends BaseEntity {
     @JoinColumn(name = "household_id", nullable = false)
     private Household household;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "supply_category_id", nullable = false)
-    private SupplyCategory supplyCategory;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", nullable = false, columnDefinition = "varchar(50)")
+    private SupplyCategoryType category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sub_category", nullable = false, columnDefinition = "varchar(50)")
+    private SupplySubCategoryType subCategory;
 
     @Column(name = "item_name", nullable = false, length = 100)
     private String itemName;
@@ -48,10 +54,11 @@ public class SupplyPurchase extends BaseEntity {
     private Settlement settlement;
 
     @Builder
-    public SupplyPurchase(Household household, SupplyCategory supplyCategory, String itemName, LocalDate purchaseDate,
-                          Integer amount, Integer quantity, Boolean isSettled) {
+    public SupplyPurchase(Household household, SupplyCategoryType category, SupplySubCategoryType subCategory,
+                          String itemName, LocalDate purchaseDate, Integer amount, Integer quantity, Boolean isSettled) {
         this.household = household;
-        this.supplyCategory = supplyCategory;
+        this.category = category;
+        this.subCategory = subCategory;
         this.itemName = itemName;
         this.purchaseDate = purchaseDate;
         this.amount = amount;
@@ -59,12 +66,14 @@ public class SupplyPurchase extends BaseEntity {
         this.isSettled = isSettled;
     }
 
-    public void update(String itemName, LocalDate purchaseDate, Integer amount, Integer quantity, SupplyCategory supplyCategory) {
+    public void update(String itemName, LocalDate purchaseDate, Integer amount, Integer quantity,
+                       SupplyCategoryType category, SupplySubCategoryType subCategory) {
         if (itemName != null) this.itemName = itemName;
         if (purchaseDate != null) this.purchaseDate = purchaseDate;
         if (amount != null) this.amount = amount;
         if (quantity != null) this.quantity = quantity;
-        if (supplyCategory != null) this.supplyCategory = supplyCategory;
+        if (category != null) this.category = category;
+        if (subCategory != null) this.subCategory = subCategory;
     }
 
     public void settle(Settlement settlement) {

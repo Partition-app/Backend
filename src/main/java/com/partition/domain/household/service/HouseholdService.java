@@ -3,7 +3,6 @@ package com.partition.domain.household.service;
 import com.partition.domain.chore.repository.HouseholdChoreRepository;
 import com.partition.domain.household.exception.HouseholdErrorCode;
 import com.partition.domain.household.repository.HouseholdRepository;
-import com.partition.domain.supply.service.SupplyCategoryService;
 import com.partition.domain.user.exception.UserErrorCode;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.Household;
@@ -26,7 +25,6 @@ public class HouseholdService {
     private final HouseholdRepository householdRepository;
     private final UserRepository userRepository;
     private final HouseholdChoreRepository householdChoreRepository;
-    private final SupplyCategoryService supplyCategoryService;
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
@@ -53,7 +51,6 @@ public class HouseholdService {
 
                 householdRepository.saveAndFlush(household);
                 initHouseholdChores(household);
-                supplyCategoryService.initializeDefaultCategories(household);
                 break;
             } catch (DataIntegrityViolationException e) {
                 if (attempt == MAX_RETRY_ATTEMPTS - 1) {
