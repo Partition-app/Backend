@@ -10,11 +10,9 @@ import com.partition.domain.supply.dto.response.SupplyPurchaseListResponse;
 import com.partition.domain.supply.dto.response.SupplyPurchaseResultResponse;
 import com.partition.domain.supply.dto.response.UpdateSupplyPurchaseResponse;
 import com.partition.domain.supply.exception.SupplyErrorCode;
-import com.partition.domain.supply.repository.SupplyCategoryRepository;
 import com.partition.domain.supply.repository.SupplyPurchaseRepository;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.Household;
-import com.partition.entity.SupplyCategory;
 import com.partition.entity.SupplyPurchase;
 import com.partition.entity.User;
 import com.partition.entity.enums.SupplyCategoryType;
@@ -34,7 +32,6 @@ public class SupplyPurchaseService {
 
     private final UserRepository userRepository;
     private final HouseholdRepository householdRepository;
-    private final SupplyCategoryRepository supplyCategoryRepository;
     private final SupplyPurchaseRepository supplyPurchaseRepository;
 
     /**
@@ -54,16 +51,12 @@ public class SupplyPurchaseService {
         SupplyCategoryType categoryType = parseCategory(request.getCategory());
         SupplySubCategoryType subCategoryType = parseSubCategory(request.getSubCategory());
 
-        // 가구에 등록된 카테고리 조회
-        SupplyCategory supplyCategory = supplyCategoryRepository
-                .findByHouseholdIdAndCategoryAndSubCategory(household.getId(), categoryType, subCategoryType)
-                .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_3006));
-
         // 구매 내역 저장
         SupplyPurchase purchase = supplyPurchaseRepository.save(
                 SupplyPurchase.builder()
                         .household(household)
-                        .supplyCategory(supplyCategory)
+                        .category(categoryType)
+                        .subCategory(subCategoryType)
                         .itemName(request.getItemName().trim())
                         .purchaseDate(parsePurchaseDate(request.getPurchaseDate()))
                         .amount(request.getAmount())
@@ -78,8 +71,8 @@ public class SupplyPurchaseService {
                 .purchaseDate(purchase.getPurchaseDate())
                 .amount(purchase.getAmount())
                 .quantity(purchase.getQuantity())
-                .category(supplyCategory.getCategory().name())
-                .subCategory(supplyCategory.getSubCategory().name())
+                .category(purchase.getCategory().name())
+                .subCategory(purchase.getSubCategory().name())
                 .createdAt(purchase.getCreatedAt())
                 .build();
     }
@@ -221,32 +214,29 @@ public class SupplyPurchaseService {
             throw new CustomException(SupplyErrorCode.SUPPLY_3005);
         }
 
-        // 카테고리 변경 시 가구에 등록된 카테고리 조회
-        SupplyCategory supplyCategory = null;
+        // 카테고리 변경 시 enum 변환
+        SupplyCategoryType categoryType = null;
+        SupplySubCategoryType subCategoryType = null;
         if (request.getCategory() != null || request.getSubCategory() != null) {
-            SupplyCategoryType categoryType = parseCategory(
-                    request.getCategory() != null ? request.getCategory() : purchase.getSupplyCategory().getCategory().name()
+            categoryType = parseCategory(
+                    request.getCategory() != null ? request.getCategory() : purchase.getCategory().name()
             );
-            SupplySubCategoryType subCategoryType = parseSubCategory(
-                    request.getSubCategory() != null ? request.getSubCategory() : purchase.getSupplyCategory().getSubCategory().name()
+            subCategoryType = parseSubCategory(
+                    request.getSubCategory() != null ? request.getSubCategory() : purchase.getSubCategory().name()
             );
-            supplyCategory = supplyCategoryRepository
-                    .findByHouseholdIdAndCategoryAndSubCategory(purchase.getHousehold().getId(), categoryType, subCategoryType)
-                    .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_3006));
         }
 
         // 구매 내역 업데이트
-        purchase.update(trimmedItemName, purchaseDate, request.getAmount(), request.getQuantity(), supplyCategory);
+        purchase.update(trimmedItemName, purchaseDate, request.getAmount(), request.getQuantity(), categoryType, subCategoryType);
 
-        SupplyCategory finalCategory = supplyCategory != null ? supplyCategory : purchase.getSupplyCategory();
         return UpdateSupplyPurchaseResponse.builder()
                 .purchaseId(purchase.getId())
                 .itemName(purchase.getItemName())
                 .purchaseDate(purchase.getPurchaseDate())
                 .amount(purchase.getAmount())
                 .quantity(purchase.getQuantity())
-                .category(finalCategory.getCategory().name())
-                .subCategory(finalCategory.getSubCategory().name())
+                .category(purchase.getCategory().name())
+                .subCategory(purchase.getSubCategory().name())
                 .updatedAt(purchase.getUpdatedAt())
                 .build();
     }

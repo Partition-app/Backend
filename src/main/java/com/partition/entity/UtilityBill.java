@@ -1,7 +1,9 @@
 package com.partition.entity;
 
+import com.partition.entity.enums.BillCategoryType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -11,19 +13,36 @@ import java.time.LocalDate;
 @Getter
 @Table(name = "utility_bills")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UtilityBill {
+public class UtilityBill extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "bill_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "household_id")
+    @JoinColumn(name = "household_id", nullable = false)
     private Household household;
 
-    private String title; // 월세, 전기세 등
+    @Enumerated(EnumType.STRING)
+    @Column(name = "bill_type", nullable = false, columnDefinition = "varchar(50)")
+    private BillCategoryType billType;
 
-    private LocalDate dueDate; // 납부일
+    @Column(name = "due_date", nullable = false)
+    private LocalDate dueDate;
 
-    private boolean isPaid; // 납부 여부
+    @Column(nullable = false)
+    private Integer amount;
+
+    @Column(name = "is_paid", nullable = false)
+    private Boolean isPaid = false;
+
+    @Builder
+    public UtilityBill(Household household, BillCategoryType billType, LocalDate dueDate, Integer amount) {
+        this.household = household;
+        this.billType = billType;
+        this.dueDate = dueDate;
+        this.amount = amount;
+        this.isPaid = false;
+    }
 }
