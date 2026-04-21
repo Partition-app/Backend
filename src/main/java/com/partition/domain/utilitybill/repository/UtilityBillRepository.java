@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface UtilityBillRepository extends JpaRepository<UtilityBill, Long> {
 
-    // 공과금은 Household와 직접 연관됨
     List<UtilityBill> findAllByHouseholdIdAndDueDateBetween(Long householdId, LocalDate startDate, LocalDate endDate);
+
+    List<UtilityBill> findAllBySettlementId(Long settlementId);
 }

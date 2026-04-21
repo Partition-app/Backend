@@ -5,14 +5,13 @@ import com.partition.domain.supply.dto.request.CreateSupplyPurchaseRequest;
 import com.partition.domain.supply.dto.response.CreateSupplyPurchaseResponse;
 import com.partition.domain.supply.dto.response.SupplyPurchaseListResponse;
 import com.partition.domain.supply.exception.SupplyErrorCode;
-import com.partition.domain.supply.repository.SupplyCategoryRepository;
 import com.partition.domain.supply.repository.SupplyPurchaseRepository;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.Household;
-import com.partition.entity.SupplyCategory;
 import com.partition.entity.SupplyPurchase;
 import com.partition.entity.User;
 import com.partition.entity.enums.SupplyCategoryType;
+import com.partition.entity.enums.SupplyPurchaseStatus;
 import com.partition.entity.enums.SupplySubCategoryType;
 import com.partition.entity.enums.UserRole;
 import com.partition.global.exception.CustomException;
@@ -43,9 +42,6 @@ class SupplyPurchaseServiceTest {
     private HouseholdRepository householdRepository;
 
     @Mock
-    private SupplyCategoryRepository supplyCategoryRepository;
-
-    @Mock
     private SupplyPurchaseRepository supplyPurchaseRepository;
 
     @InjectMocks
@@ -64,19 +60,9 @@ class SupplyPurchaseServiceTest {
 
         User user = user(1L, 10L);
         Household household = household(10L, "우리 집");
-        SupplyCategory supplyCategory = SupplyCategory.builder()
-                .household(household)
-                .category(SupplyCategoryType.GROCERY)
-                .subCategory(SupplySubCategoryType.RICE)
-                .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(householdRepository.findById(10L)).thenReturn(Optional.of(household));
-        when(supplyCategoryRepository.findByHouseholdIdAndCategoryAndSubCategory(
-                10L,
-                SupplyCategoryType.GROCERY,
-                SupplySubCategoryType.RICE
-        )).thenReturn(Optional.of(supplyCategory));
         when(supplyPurchaseRepository.save(any(SupplyPurchase.class))).thenAnswer(invocation -> {
             SupplyPurchase purchase = invocation.getArgument(0);
             ReflectionTestUtils.setField(purchase, "id", 100L);
@@ -117,8 +103,8 @@ class SupplyPurchaseServiceTest {
         User user = user(1L, 10L);
         Household household = household(10L, "우리 집");
 
-        SupplyPurchase purchase1 = purchase(1L, household, "콘푸라이트 500g", LocalDate.of(2025, 5, 4), 5980, 3, true);
-        SupplyPurchase purchase2 = purchase(2L, household, "두루마리 휴지", LocalDate.of(2025, 5, 5), 8000, 3, false);
+        SupplyPurchase purchase1 = purchase(1L, household, "콘푸라이트 500g", LocalDate.of(2025, 5, 4), 5980, 3, SupplyPurchaseStatus.SETTLED);
+        SupplyPurchase purchase2 = purchase(2L, household, "두루마리 휴지", LocalDate.of(2025, 5, 5), 8000, 3, SupplyPurchaseStatus.UNSETTLED);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(householdRepository.findById(10L)).thenReturn(Optional.of(household));
@@ -132,8 +118,8 @@ class SupplyPurchaseServiceTest {
 
         assertThat(response.getTotalCount()).isEqualTo(2);
         assertThat(response.getPurchases()).hasSize(2);
-        assertThat(response.getPurchases().get(0).getIsSettled()).isTrue();
-        assertThat(response.getPurchases().get(1).getIsSettled()).isFalse();
+        assertThat(response.getPurchases().get(0).getStatus()).isEqualTo("SETTLED");
+        assertThat(response.getPurchases().get(1).getStatus()).isEqualTo("UNSETTLED");
     }
 
     @Test
@@ -191,24 +177,19 @@ class SupplyPurchaseServiceTest {
             LocalDate purchaseDate,
             Integer amount,
             Integer quantity,
-            Boolean isSettled
+            SupplyPurchaseStatus status
     ) {
-        SupplyCategory supplyCategory = SupplyCategory.builder()
+        SupplyPurchase purchase = SupplyPurchase.builder()
                 .household(household)
                 .category(SupplyCategoryType.GROCERY)
                 .subCategory(SupplySubCategoryType.RICE)
-                .build();
-
-        SupplyPurchase purchase = SupplyPurchase.builder()
-                .household(household)
-                .supplyCategory(supplyCategory)
                 .itemName(itemName)
                 .purchaseDate(purchaseDate)
                 .amount(amount)
                 .quantity(quantity)
-                .isSettled(isSettled)
                 .build();
         ReflectionTestUtils.setField(purchase, "id", id);
+        ReflectionTestUtils.setField(purchase, "status", status);
         return purchase;
     }
 }

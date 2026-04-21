@@ -17,6 +17,7 @@ public class BillResponse {
     private LocalDate date;
     private Integer amount;
     private String note;
+    private String status;
     private LocalDateTime createdAt;
 
     public static BillResponse from(UtilityBill bill) {
@@ -27,6 +28,7 @@ public class BillResponse {
                 .date(bill.getDueDate())
                 .amount(bill.getAmount())
                 .note(bill.getNote())
+                .status(bill.getStatus().name())
                 .createdAt(bill.getCreatedAt())
                 .build();
     }
