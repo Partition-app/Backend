@@ -37,12 +37,16 @@ public class UtilityBill extends BaseEntity {
     @Column(name = "is_paid", nullable = false)
     private Boolean isPaid = false;
 
+    @Column(length = 255)
+    private String note;
+
     @Builder
-    public UtilityBill(Household household, BillCategoryType billType, LocalDate dueDate, Integer amount) {
+    public UtilityBill(Household household, BillCategoryType billType, LocalDate dueDate, Integer amount, String note) {
         this.household = household;
         this.billType = billType;
         this.dueDate = dueDate;
         this.amount = amount;
         this.isPaid = false;
+        this.note = note;
     }
 }

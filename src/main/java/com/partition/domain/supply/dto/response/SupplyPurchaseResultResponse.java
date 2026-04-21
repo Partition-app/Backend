@@ -14,7 +14,7 @@ public class SupplyPurchaseResultResponse {
     private LocalDate purchaseDate;
     private Integer amount;
     private Integer quantity;
-    private Boolean isSettled;
+    private String status;
     private String category;
     private String subCategory;
 }

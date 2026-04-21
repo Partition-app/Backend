@@ -51,6 +51,7 @@ public class UtilityBillService {
                         .billType(billType)
                         .dueDate(dueDate)
                         .amount(request.getAmount())
+                        .note(request.getNote())
                         .build()
         );
 
@@ -60,6 +61,7 @@ public class UtilityBillService {
                 .billTypeName(bill.getBillType().getLabel())
                 .dueDate(bill.getDueDate())
                 .amount(bill.getAmount())
+                .note(bill.getNote())
                 .createdAt(bill.getCreatedAt())
                 .build();
     }

@@ -16,6 +16,7 @@ import com.partition.entity.Household;
 import com.partition.entity.SupplyPurchase;
 import com.partition.entity.User;
 import com.partition.entity.enums.SupplyCategoryType;
+import com.partition.entity.enums.SupplyPurchaseStatus;
 import com.partition.entity.enums.SupplySubCategoryType;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -61,7 +62,6 @@ public class SupplyPurchaseService {
                         .purchaseDate(parsePurchaseDate(request.getPurchaseDate()))
                         .amount(request.getAmount())
                         .quantity(request.getQuantity())
-                        .isSettled(false)
                         .build()
         );
 
@@ -109,7 +109,7 @@ public class SupplyPurchaseService {
                         .purchaseDate(purchase.getPurchaseDate())
                         .amount(purchase.getAmount())
                         .quantity(purchase.getQuantity())
-                        .isSettled(purchase.getIsSettled())
+                        .status(purchase.getStatus().name())
                         .category(purchase.getCategory().name())
                         .subCategory(purchase.getSubCategory().name())
                         .build())
@@ -145,8 +145,9 @@ public class SupplyPurchaseService {
 
         // 미정산 구매 내역 조회
         List<SettlementPurchaseResponse> purchases = supplyPurchaseRepository
-                .findAllByHouseholdIdAndIsSettledFalseAndPurchaseDateBetweenOrderByPurchaseDateAscIdAsc(
+                .findAllByHouseholdIdAndStatusAndPurchaseDateBetweenOrderByPurchaseDateAscIdAsc(
                         household.getId(),
+                        SupplyPurchaseStatus.UNSETTLED,
                         parsedStartDate,
                         parsedEndDate
                 )

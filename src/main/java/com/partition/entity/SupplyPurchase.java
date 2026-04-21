@@ -1,6 +1,7 @@
 package com.partition.entity;
 
 import com.partition.entity.enums.SupplyCategoryType;
+import com.partition.entity.enums.SupplyPurchaseStatus;
 import com.partition.entity.enums.SupplySubCategoryType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -46,8 +47,9 @@ public class SupplyPurchase extends BaseEntity {
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(name = "is_settled", nullable = false)
-    private Boolean isSettled;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "varchar(20)")
+    private SupplyPurchaseStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "settlement_id")
@@ -55,7 +57,7 @@ public class SupplyPurchase extends BaseEntity {
 
     @Builder
     public SupplyPurchase(Household household, SupplyCategoryType category, SupplySubCategoryType subCategory,
-                          String itemName, LocalDate purchaseDate, Integer amount, Integer quantity, Boolean isSettled) {
+                          String itemName, LocalDate purchaseDate, Integer amount, Integer quantity) {
         this.household = household;
         this.category = category;
         this.subCategory = subCategory;
@@ -63,7 +65,7 @@ public class SupplyPurchase extends BaseEntity {
         this.purchaseDate = purchaseDate;
         this.amount = amount;
         this.quantity = quantity;
-        this.isSettled = isSettled;
+        this.status = SupplyPurchaseStatus.UNSETTLED;
     }
 
     public void update(String itemName, LocalDate purchaseDate, Integer amount, Integer quantity,
@@ -76,8 +78,13 @@ public class SupplyPurchase extends BaseEntity {
         if (subCategory != null) this.subCategory = subCategory;
     }
 
+    public void requestSettlement(Settlement settlement) {
+        this.status = SupplyPurchaseStatus.REQUESTED;
+        this.settlement = settlement;
+    }
+
     public void settle(Settlement settlement) {
-        this.isSettled = true;
+        this.status = SupplyPurchaseStatus.SETTLED;
         this.settlement = settlement;
     }
 }

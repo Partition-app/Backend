@@ -2,6 +2,7 @@ package com.partition.domain.supply.controller;
 
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.supply.dto.request.CreateSettlementRequest;
+import com.partition.domain.supply.dto.response.ConfirmSettlementResponse;
 import com.partition.domain.supply.dto.response.CreateSettlementResponse;
 import com.partition.domain.supply.dto.response.SettlementListResponse;
 import com.partition.domain.supply.service.SettlementService;
@@ -36,7 +37,7 @@ public class SupplySettlementController {
         );
     }
 
-    @Operation(summary = "공용 구매 물품 정산 처리", description = "선택한 구매 기록을 하우스 멤버 수로 N/1 정산 처리합니다.")
+    @Operation(summary = "공동 구매 물품 정산 처리", description = "선택한 구매 기록을 하우스 멤버 수로 N/1 정산 처리합니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<CreateSettlementResponse>> createSettlement(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -46,6 +47,20 @@ public class SupplySettlementController {
         CreateSettlementResponse result = settlementService.createSettlement(userId, request);
 
         return ResponseEntity.status(201)
-                .body(ApiResponse.onSuccess("201", "정산 메시지 발송 성공", result));
+                .body(ApiResponse.onSuccess("201", "정산 메세지 발송 성공", result));
+    }
+
+    @Operation(summary = "공동 구매 물품 정산 완료 처리", description = "정산 요청된 내역을 일괄 정산 완료 처리합니다.")
+    @PatchMapping("/{settlementId}/confirm")
+    public ResponseEntity<ApiResponse<ConfirmSettlementResponse>> confirmSettlement(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long settlementId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        ConfirmSettlementResponse result = settlementService.confirmSettlement(userId, settlementId);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "정산 완료 처리 성공", result)
+        );
     }
 }
