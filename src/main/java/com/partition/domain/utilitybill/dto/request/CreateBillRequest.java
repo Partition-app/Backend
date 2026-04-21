@@ -10,4 +10,5 @@ public class CreateBillRequest {
     private String utilityType;
     private String dueDate;
     private Integer amount;
+    private String note;
 }

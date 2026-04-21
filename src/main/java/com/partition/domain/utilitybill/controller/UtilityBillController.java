@@ -2,8 +2,12 @@ package com.partition.domain.utilitybill.controller;
 
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
+import com.partition.domain.utilitybill.dto.request.CreateBillSettlementRequest;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
+import com.partition.domain.utilitybill.dto.response.ConfirmBillSettlementResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
+import com.partition.domain.utilitybill.dto.response.CreateBillSettlementResponse;
+import com.partition.domain.utilitybill.service.BillSettlementService;
 import com.partition.domain.utilitybill.service.UtilityBillService;
 import com.partition.global.config.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +25,7 @@ import java.util.List;
 public class UtilityBillController {
 
     private final UtilityBillService utilityBillService;
+    private final BillSettlementService billSettlementService;
 
     @Operation(summary = "공과금 목록 조회", description = "기간별 공과금 내역을 조회합니다.")
     @GetMapping
@@ -46,5 +51,30 @@ public class UtilityBillController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.onSuccess("201", "공과금 등록 성공", result));
+    }
+
+    @Operation(summary = "공과금 정산 요청", description = "선택한 공과금을 하우스 멤버 수로 N/1 정산 요청합니다.")
+    @PostMapping("/settlement")
+    public ResponseEntity<ApiResponse<CreateBillSettlementResponse>> createSettlement(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody CreateBillSettlementRequest request
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        CreateBillSettlementResponse result = billSettlementService.createSettlement(userId, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.onSuccess("201", "공과금 정산 메세지 발송 성공", result));
+    }
+
+    @Operation(summary = "공과금 정산 완료 처리", description = "정산 요청된 공과금 내역을 일괄 정산 완료 처리합니다.")
+    @PatchMapping("/settlement/{settlementId}/confirm")
+    public ResponseEntity<ApiResponse<ConfirmBillSettlementResponse>> confirmSettlement(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long settlementId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        ConfirmBillSettlementResponse result = billSettlementService.confirmSettlement(userId, settlementId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 정산 완료 처리 성공", result));
     }
 }

@@ -1,6 +1,7 @@
 package com.partition.domain.supply.service;
 
 import com.partition.domain.supply.dto.request.CreateSettlementRequest;
+import com.partition.domain.supply.dto.response.ConfirmSettlementResponse;
 import com.partition.domain.supply.dto.response.CreateSettlementResponse;
 import com.partition.domain.supply.exception.SupplyErrorCode;
 import com.partition.domain.supply.repository.SettlementMemberRepository;
@@ -8,6 +9,7 @@ import com.partition.domain.supply.repository.SettlementRepository;
 import com.partition.domain.supply.repository.SupplyPurchaseRepository;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.*;
+import com.partition.entity.enums.SupplyPurchaseStatus;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,10 +57,18 @@ public class SettlementService {
             throw new CustomException(SupplyErrorCode.SUPPLY_5002);
         }
 
-        // 이미 정산된 구매 기록 포함 여부 검증
-        boolean hasAlreadySettled = purchases.stream().anyMatch(SupplyPurchase::getIsSettled);
-        if (hasAlreadySettled) {
+        // 이미 정산요청된 구매 기록 포함 여부 검증
+        boolean hasSettlementRequested = purchases.stream()
+                .anyMatch(p -> p.getStatus() == SupplyPurchaseStatus.REQUESTED);
+        if (hasSettlementRequested) {
             throw new CustomException(SupplyErrorCode.SUPPLY_5003);
+        }
+
+        // 이미 정산완료된 구매 기록 포함 여부 검증
+        boolean hasAlreadySettled = purchases.stream()
+                .anyMatch(p -> p.getStatus() == SupplyPurchaseStatus.SETTLED);
+        if (hasAlreadySettled) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_5006);
         }
 
         // 멤버 조회 및 하우스 멤버 여부 검증
@@ -100,8 +110,8 @@ public class SettlementService {
             ));
         }
 
-        // 구매 기록 정산 처리
-        purchases.forEach(purchase -> purchase.settle(settlement));
+        // 구매 기록 정산 요청 처리
+        purchases.forEach(purchase -> purchase.requestSettlement(settlement));
 
         return CreateSettlementResponse.builder()
                 .settlementId(settlement.getId())
@@ -118,6 +128,64 @@ public class SettlementService {
                         .toList())
                 .items(purchases.stream()
                         .map(p -> CreateSettlementResponse.SettlementItemResponse.builder()
+                                .purchaseId(p.getId())
+                                .itemName(p.getItemName())
+                                .amount(p.getAmount())
+                                .build())
+                        .toList())
+                .build();
+    }
+
+    /**
+     * 정산 완료 처리
+     */
+    @Transactional
+    public ConfirmSettlementResponse confirmSettlement(Long userId, Long settlementId) {
+        // 정산 내역 조회
+        Settlement settlement = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_5007));
+
+        // 권한 검증 (요청 유저가 해당 하우스 멤버인지)
+        User requestUser = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_3007));
+        if (!settlement.getHousehold().getId().equals(requestUser.getHouseholdId())) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_5010);
+        }
+
+        // 이미 정산완료된 내역 검증
+        if (Boolean.TRUE.equals(settlement.getIsConfirmed())) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_5008);
+        }
+
+        // 정산요청 상태 검증 (연결된 구매 기록이 모두 정산요청 상태여야 함)
+        List<SupplyPurchase> purchases = supplyPurchaseRepository.findAllBySettlementId(settlementId);
+        boolean hasNonRequested = purchases.stream().anyMatch(p -> p.getStatus() != SupplyPurchaseStatus.REQUESTED);
+        if (hasNonRequested) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_5009);
+        }
+
+        // 정산 완료 처리
+        settlement.confirm();
+        purchases.forEach(purchase -> purchase.settle(settlement));
+
+        // 멤버 정보 조회
+        List<SettlementMember> members = settlementMemberRepository.findAllBySettlementId(settlementId);
+
+        return ConfirmSettlementResponse.builder()
+                .settlementId(settlement.getId())
+                .totalAmount(settlement.getTotalAmount())
+                .memberCount(settlement.getMemberCount())
+                .amountPerMember(settlement.getAmountPerMember())
+                .confirmedAt(settlement.getConfirmedAt())
+                .members(members.stream()
+                        .map(sm -> ConfirmSettlementResponse.SettlementMemberResponse.builder()
+                                .userId(sm.getUser().getId())
+                                .name(sm.getUser().getName())
+                                .amount(sm.getAmount())
+                                .build())
+                        .toList())
+                .items(purchases.stream()
+                        .map(p -> ConfirmSettlementResponse.SettlementItemResponse.builder()
                                 .purchaseId(p.getId())
                                 .itemName(p.getItemName())
                                 .amount(p.getAmount())

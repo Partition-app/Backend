@@ -15,5 +15,6 @@ public class CreateBillResponse {
     private String billTypeName;
     private LocalDate dueDate;
     private Integer amount;
+    private String note;
     private LocalDateTime createdAt;
 }

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Table(name = "settlements")
@@ -30,11 +32,23 @@ public class Settlement extends BaseEntity {
     @Column(name = "amount_per_member", nullable = false)
     private Integer amountPerMember;
 
+    @Column(name = "is_confirmed", nullable = false)
+    private Boolean isConfirmed = false;
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     @Builder
     public Settlement(Household household, Integer totalAmount, Integer memberCount, Integer amountPerMember) {
         this.household = household;
         this.totalAmount = totalAmount;
         this.memberCount = memberCount;
         this.amountPerMember = amountPerMember;
+        this.isConfirmed = false;
+    }
+
+    public void confirm() {
+        this.isConfirmed = true;
+        this.confirmedAt = LocalDateTime.now();
     }
 }

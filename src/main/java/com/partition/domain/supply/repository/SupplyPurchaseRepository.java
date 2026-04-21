@@ -1,6 +1,7 @@
 package com.partition.domain.supply.repository;
 
 import com.partition.entity.SupplyPurchase;
+import com.partition.entity.enums.SupplyPurchaseStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
@@ -14,9 +15,12 @@ public interface SupplyPurchaseRepository extends JpaRepository<SupplyPurchase, 
             LocalDate endDate
     );
 
-    List<SupplyPurchase> findAllByHouseholdIdAndIsSettledFalseAndPurchaseDateBetweenOrderByPurchaseDateAscIdAsc(
+    List<SupplyPurchase> findAllByHouseholdIdAndStatusAndPurchaseDateBetweenOrderByPurchaseDateAscIdAsc(
             Long householdId,
+            SupplyPurchaseStatus status,
             LocalDate startDate,
             LocalDate endDate
     );
+
+    List<SupplyPurchase> findAllBySettlementId(Long settlementId);
 }
