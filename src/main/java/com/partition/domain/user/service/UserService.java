@@ -22,4 +22,12 @@ public class UserService {
         // User 엔티티에 있는 updateName 편의 메서드를 호출
         user.updateName(newName);
     }
+
+    @Transactional
+    public void updateFcmToken(Long userId, String fcmToken) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        user.updateFcmToken(fcmToken);
+    }
 }

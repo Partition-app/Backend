@@ -4,6 +4,9 @@ import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.CreateBillSettlementRequest;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
+import com.partition.domain.utilitybill.dto.response.BillSettlementDetailResponse;
+import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
+import com.partition.domain.utilitybill.dto.response.BillSettlementRequestedListResponse;
 import com.partition.domain.utilitybill.dto.response.ConfirmBillSettlementResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillSettlementResponse;
@@ -53,7 +56,20 @@ public class UtilityBillController {
                 .body(ApiResponse.onSuccess("201", "공과금 등록 성공", result));
     }
 
-    @Operation(summary = "공과금 정산 요청", description = "선택한 공과금을 하우스 멤버 수로 N/1 정산 요청합니다.")
+    @Operation(summary = "정산 대상 공과금 목록 조회", description = "기간 내 미정산 공과금 목록과 인당 금액을 조회합니다.")
+    @GetMapping("/settlement/list")
+    public ResponseEntity<ApiResponse<BillSettlementListResponse>> getSettlementBills(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        BillSettlementListResponse result = utilityBillService.getSettlementBills(userId, startDate, endDate);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "정산 대상 공과금 목록 조회 성공", result));
+    }
+
+    @Operation(summary = "공과금 정산 요청", description = "선택한 공과금을 하우스 멤버 수로 1/N 정산 요청합니다.")
     @PostMapping("/settlement")
     public ResponseEntity<ApiResponse<CreateBillSettlementResponse>> createSettlement(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -76,5 +92,28 @@ public class UtilityBillController {
         ConfirmBillSettlementResponse result = billSettlementService.confirmSettlement(userId, settlementId);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 정산 완료 처리 성공", result));
+    }
+
+    @Operation(summary = "정산 요청된 공과금 목록 조회", description = "정산 요청 상태인 공과금 정산 목록을 조회합니다.")
+    @GetMapping("/settlement/requested")
+    public ResponseEntity<ApiResponse<BillSettlementRequestedListResponse>> getRequestedSettlements(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        BillSettlementRequestedListResponse result = billSettlementService.getRequestedSettlements(userId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "정산 요청 목록 조회 성공", result));
+    }
+
+    @Operation(summary = "공과금 정산 상세 조회", description = "정산 ID로 공과금 정산 상세 정보를 조회합니다.")
+    @GetMapping("/settlement/{settlementId}")
+    public ResponseEntity<ApiResponse<BillSettlementDetailResponse>> getSettlementDetail(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long settlementId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        BillSettlementDetailResponse result = billSettlementService.getSettlementDetail(userId, settlementId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 정산 상세 조회 성공", result));
     }
 }

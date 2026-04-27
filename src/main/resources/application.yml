@@ -33,3 +33,6 @@ jwt:
 
 fastapi:
   url: ${FASTAPI_URL}
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH}

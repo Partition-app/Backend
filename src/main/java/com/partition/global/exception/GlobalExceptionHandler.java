@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -48,7 +49,15 @@ public class GlobalExceptionHandler {
                 ));
     }
 
-    // 3. 그 외 예상치 못한 Exception (500)
+    // 3. 존재하지 않는 URL 요청 (404)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        return ResponseEntity
+                .status(404)
+                .body(ApiResponse.onFailure("404", "요청한 리소스를 찾을 수 없습니다.", null));
+    }
+
+    // 4. 그 외 예상치 못한 Exception (500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleException(Exception ex) {
         log.error("Internal Server Error: ", ex);

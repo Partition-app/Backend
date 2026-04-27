@@ -1,4 +1,4 @@
-name: Partition CI/CD
+`name: Partition CI/CD
 
 on:
   push:

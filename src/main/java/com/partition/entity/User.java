@@ -52,6 +52,9 @@ public class User extends BaseEntity {
     @Column(name = "moved_out_at")
     private LocalDateTime movedOutAt;
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
     @Builder
     public User(String email, String password, String name, String provider, String profileImage, String providerId, UserRole memberRole) {
         this.email = email;
@@ -71,6 +74,10 @@ public class User extends BaseEntity {
 
     public void updateName(String name) {
         this.name = name;
+    }
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 
     public void updateHousehold(Long householdId, UserRole role) {
