@@ -4,6 +4,7 @@ import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.preference.dto.request.UserPreferenceRequest;
 import com.partition.domain.preference.service.UserPreferenceService;
 import com.partition.domain.user.dto.request.UpdateUserRequest;
+import com.partition.domain.user.dto.request.UpdateFcmTokenRequest;
 import com.partition.domain.user.service.UserService;
 import com.partition.global.config.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,6 +60,18 @@ public class UserController {
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("200", "선호도 등록 성공", savedPreferences)
         );
+    }
+
+    @Operation(summary = "FCM 토큰 등록/갱신", description = "앱 실행 시 FCM 토큰을 서버에 등록합니다.")
+    @PatchMapping("/me/fcm-token")
+    public ResponseEntity<ApiResponse<Void>> updateFcmToken(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid UpdateFcmTokenRequest request) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        userService.updateFcmToken(userId, request.getFcmToken());
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "FCM 토큰이 등록되었습니다.", null));
     }
 
 }

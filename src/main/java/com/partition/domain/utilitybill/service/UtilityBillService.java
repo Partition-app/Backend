@@ -3,6 +3,7 @@ package com.partition.domain.utilitybill.service;
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
+import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
 import com.partition.domain.utilitybill.exception.BillErrorCode;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
@@ -11,6 +12,7 @@ import com.partition.entity.Household;
 import com.partition.entity.UtilityBill;
 import com.partition.entity.User;
 import com.partition.entity.enums.BillCategoryType;
+import com.partition.entity.enums.BillStatus;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -93,6 +95,57 @@ public class UtilityBillService {
                 .stream()
                 .map(BillResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public BillSettlementListResponse getSettlementBills(Long userId, String startDate, String endDate) {
+        if (startDate == null || startDate.trim().isEmpty()) {
+            throw new CustomException(BillErrorCode.BILL_2001);
+        }
+        if (endDate == null || endDate.trim().isEmpty()) {
+            throw new CustomException(BillErrorCode.BILL_2002);
+        }
+
+        LocalDate start = parseDateForQuery(startDate);
+        LocalDate end = parseDateForQuery(endDate);
+
+        if (start.isAfter(end)) {
+            throw new CustomException(BillErrorCode.BILL_2004);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(BillErrorCode.BILL_2005);
+        }
+
+        int memberCount = userRepository.findByHouseholdId(user.getHouseholdId()).size();
+
+        List<UtilityBill> bills = utilityBillRepository
+                .findAllByHouseholdIdAndStatusAndDueDateBetweenOrderByDueDateAscIdAsc(
+                        user.getHouseholdId(), BillStatus.UNSETTLED, start, end);
+
+        int totalAmount = bills.stream().mapToInt(UtilityBill::getAmount).sum();
+        int amountPerMember = memberCount > 0 ? totalAmount / memberCount : 0;
+        int remainder = memberCount > 0 ? totalAmount % memberCount : 0;
+
+        return BillSettlementListResponse.builder()
+                .totalCount(bills.size())
+                .totalAmount(totalAmount)
+                .memberCount(memberCount)
+                .amountPerMember(amountPerMember)
+                .remainder(remainder)
+                .bills(bills.stream()
+                        .map(b -> BillSettlementListResponse.BillItem.builder()
+                                .billId(b.getId())
+                                .utilityTypeName(b.getBillType().getLabel())
+                                .dueDate(b.getDueDate())
+                                .amount(b.getAmount())
+                                .note(b.getNote())
+                                .build())
+                        .toList())
+                .build();
     }
 
     private LocalDate parseDateForQuery(String date) {

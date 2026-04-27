@@ -23,4 +23,6 @@ public interface SupplyPurchaseRepository extends JpaRepository<SupplyPurchase, 
     );
 
     List<SupplyPurchase> findAllBySettlementId(Long settlementId);
+
+    List<SupplyPurchase> findAllByHouseholdIdAndStatus(Long householdId, SupplyPurchaseStatus status);
 }

@@ -1,15 +1,21 @@
 package com.partition.domain.supply.service;
 
+import com.partition.domain.alarm.service.AlarmService;
 import com.partition.domain.supply.dto.request.CreateSettlementRequest;
 import com.partition.domain.supply.dto.response.ConfirmSettlementResponse;
 import com.partition.domain.supply.dto.response.CreateSettlementResponse;
+import com.partition.domain.supply.dto.response.SettlementRequestedListResponse;
+import com.partition.domain.supply.dto.response.SupplySettlementDetailResponse;
 import com.partition.domain.supply.exception.SupplyErrorCode;
 import com.partition.domain.supply.repository.SettlementMemberRepository;
 import com.partition.domain.supply.repository.SettlementRepository;
 import com.partition.domain.supply.repository.SupplyPurchaseRepository;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.*;
+import com.partition.entity.enums.AlarmType;
 import com.partition.entity.enums.SupplyPurchaseStatus;
+
+import java.util.stream.Collectors;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +33,7 @@ public class SettlementService {
     private final SupplyPurchaseRepository supplyPurchaseRepository;
     private final SettlementRepository settlementRepository;
     private final SettlementMemberRepository settlementMemberRepository;
+    private final AlarmService alarmService;
 
     /**
      * 정산 내역 만들고 저장
@@ -113,6 +120,8 @@ public class SettlementService {
         // 구매 기록 정산 요청 처리
         purchases.forEach(purchase -> purchase.requestSettlement(settlement));
 
+        alarmService.createSettlementAlarms(savedMembers, settlement.getId(), AlarmType.SUPPLY_SETTLEMENT_REQUESTED);
+
         return CreateSettlementResponse.builder()
                 .settlementId(settlement.getId())
                 .totalAmount(totalAmount)
@@ -171,6 +180,8 @@ public class SettlementService {
         // 멤버 정보 조회
         List<SettlementMember> members = settlementMemberRepository.findAllBySettlementId(settlementId);
 
+        alarmService.createSettlementAlarms(members, settlement.getId(), AlarmType.SUPPLY_SETTLEMENT_CONFIRMED);
+
         return ConfirmSettlementResponse.builder()
                 .settlementId(settlement.getId())
                 .totalAmount(settlement.getTotalAmount())
@@ -188,6 +199,76 @@ public class SettlementService {
                         .map(p -> ConfirmSettlementResponse.SettlementItemResponse.builder()
                                 .purchaseId(p.getId())
                                 .itemName(p.getItemName())
+                                .amount(p.getAmount())
+                                .build())
+                        .toList())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public SettlementRequestedListResponse getRequestedSettlements(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_3007));
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_3008);
+        }
+
+        List<SettlementRequestedListResponse.SettlementItem> settlements =
+                supplyPurchaseRepository.findAllByHouseholdIdAndStatus(user.getHouseholdId(), SupplyPurchaseStatus.REQUESTED)
+                        .stream()
+                        .collect(Collectors.groupingBy(p -> p.getSettlement().getId()))
+                        .values().stream()
+                        .map(purchases -> {
+                            Settlement s = purchases.get(0).getSettlement();
+                            return SettlementRequestedListResponse.SettlementItem.builder()
+                                    .settlementId(s.getId())
+                                    .totalAmount(s.getTotalAmount())
+                                    .amountPerMember(s.getAmountPerMember())
+                                    .memberCount(s.getMemberCount())
+                                    .requestedAt(s.getCreatedAt())
+                                    .build();
+                        })
+                        .toList();
+
+        return SettlementRequestedListResponse.builder()
+                .totalCount(settlements.size())
+                .settlements(settlements)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public SupplySettlementDetailResponse getSettlementDetail(Long userId, Long settlementId) {
+        Settlement settlement = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_5007));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_3007));
+        if (!settlement.getHousehold().getId().equals(user.getHouseholdId())) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_5010);
+        }
+
+        List<SettlementMember> members = settlementMemberRepository.findAllBySettlementId(settlementId);
+        List<SupplyPurchase> purchases = supplyPurchaseRepository.findAllBySettlementId(settlementId);
+
+        return SupplySettlementDetailResponse.builder()
+                .settlementId(settlement.getId())
+                .totalAmount(settlement.getTotalAmount())
+                .amountPerMember(settlement.getAmountPerMember())
+                .memberCount(settlement.getMemberCount())
+                .isConfirmed(settlement.getIsConfirmed())
+                .confirmedAt(settlement.getConfirmedAt())
+                .members(members.stream()
+                        .map(sm -> SupplySettlementDetailResponse.MemberItem.builder()
+                                .userId(sm.getUser().getId())
+                                .name(sm.getUser().getName())
+                                .amount(sm.getAmount())
+                                .build())
+                        .toList())
+                .items(purchases.stream()
+                        .map(p -> SupplySettlementDetailResponse.PurchaseItem.builder()
+                                .purchaseId(p.getId())
+                                .itemName(p.getItemName())
+                                .purchaseDate(p.getPurchaseDate())
                                 .amount(p.getAmount())
                                 .build())
                         .toList())

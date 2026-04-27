@@ -8,6 +8,8 @@ services:
       - .env
     ports:
       - "8080:8080"
+    volumes:
+      - /home/ubuntu/partition/firebase-adminsdk.json:/app/firebase-adminsdk.json:ro
     restart: always
 
   nginx:
