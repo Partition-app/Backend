@@ -40,4 +40,16 @@ public class Reservation extends BaseEntity {
         this.startTime = startTime;
         this.endTime = endTime;
     }
+
+    public void updateItem(ReservationItem item) {
+        this.item = item;
+    }
+
+    public void updateStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public void updateEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
 }

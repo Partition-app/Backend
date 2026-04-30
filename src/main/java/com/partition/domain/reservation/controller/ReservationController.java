@@ -8,7 +8,10 @@ import com.partition.domain.reservation.dto.response.CreateReservationItemRespon
 import com.partition.domain.reservation.dto.response.ReservationItemResponse;
 import com.partition.domain.reservation.dto.response.UpdateReservationItemResponse;
 import com.partition.domain.reservation.dto.request.CreateReservationRequest;
+import com.partition.domain.reservation.dto.request.DeleteReservationRequest;
+import com.partition.domain.reservation.dto.request.UpdateReservationRequest;
 import com.partition.domain.reservation.dto.response.CreateReservationResponse;
+import com.partition.domain.reservation.dto.response.ReservationListItemResponse;
 import com.partition.domain.reservation.service.ReservationItemService;
 import com.partition.domain.reservation.service.ReservationService;
 import com.partition.global.config.security.CustomUserDetails;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -49,6 +53,20 @@ public class ReservationController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.onSuccess("201", "예약 대상 추가 성공", result));
+    }
+
+    @Operation(summary = "예약 목록 조회", description = "기간 필터로 하우스의 예약 목록을 조회합니다.")
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<ReservationListItemResponse>>> getReservations(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        List<ReservationListItemResponse> result = reservationService.getReservations(userId, startDate, endDate);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "예약 목록 조회 성공", result));
     }
 
     @Operation(summary = "예약 대상 목록 조회", description = "하우스의 예약 대상 목록을 조회합니다.")
@@ -103,5 +121,32 @@ public class ReservationController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.onSuccess("201", "예약 성공", result));
+    }
+
+    @Operation(summary = "예약 삭제", description = "등록된 예약을 다중 삭제합니다.")
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<?>> deleteReservations(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody DeleteReservationRequest request) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        reservationService.deleteReservations(userId, request);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "예약 삭제 성공"));
+    }
+
+    @Operation(summary = "예약 수정", description = "등록된 예약의 대상 또는 시간을 수정합니다.")
+    @PatchMapping("/{reservationId}")
+    public ResponseEntity<ApiResponse<ReservationListItemResponse>> updateReservation(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long reservationId,
+            @RequestBody UpdateReservationRequest request) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+
+        ReservationListItemResponse result = reservationService.updateReservation(userId, reservationId, request);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "예약 수정 성공", result));
     }
 }
