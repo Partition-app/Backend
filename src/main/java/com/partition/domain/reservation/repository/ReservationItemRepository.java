@@ -11,4 +11,8 @@ public interface ReservationItemRepository extends JpaRepository<ReservationItem
     boolean existsByHouseholdAndName(Household household, String name);
 
     List<ReservationItem> findByHousehold(Household household);
+
+    boolean existsByHouseholdAndNameAndIdNot(Household household, String name, Long id);
+
+    List<ReservationItem> findAllByIdInAndHousehold(List<Long> ids, Household household);
 }

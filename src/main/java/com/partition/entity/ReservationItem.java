@@ -29,4 +29,8 @@ public class ReservationItem extends BaseEntity {
         this.household = household;
         this.name = name;
     }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
 }
