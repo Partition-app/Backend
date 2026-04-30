@@ -77,7 +77,8 @@ public class ChoreAssignmentService {
             throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_UNAVAILABLE);
         }
 
-        saveAssignmentsInTransaction(response, members, householdChores);
+
+        saveAssignmentsInTransaction(response, members, householdChores, householdId, startDate, endDate);
 
         log.info("집안일 배정 완료: 총 {}건", response.getAssignments().size());
 
@@ -85,7 +86,9 @@ public class ChoreAssignmentService {
     }
 
     @Transactional
-    public void saveAssignmentsInTransaction(AssignmentResponse response, List<User> members, List<HouseholdChore> householdChores) {
+    public void saveAssignmentsInTransaction(AssignmentResponse response, List<User> members, List<HouseholdChore> householdChores, Long householdId, LocalDate startDate, LocalDate endDate) {
+        choreRepository.deleteAllByHouseholdIdAndDateRange(householdId, startDate, endDate);
+
         Map<Long, User> userMap = members.stream().collect(Collectors.toMap(User::getId, u -> u));
         Map<Long, HouseholdChore> choreMap = householdChores.stream().collect(Collectors.toMap(HouseholdChore::getId, c -> c));
 
