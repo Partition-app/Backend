@@ -2,6 +2,8 @@ package com.partition.domain.report.service;
 
 import com.partition.domain.chore.repository.ChoreRepository;
 import com.partition.domain.chore.repository.HouseholdChoreRepository;
+import com.partition.domain.preference.repository.UserChorePreferenceRepository;
+import com.partition.entity.UserChorePreference;
 import com.partition.domain.report.dto.response.PartitionReportResponse;
 import com.partition.domain.report.dto.response.SettlementReportResponse;
 import com.partition.domain.report.dto.response.PartitionReportResponse.BillReport;
@@ -43,6 +45,7 @@ public class ReportService {
     private final UserRepository userRepository;
     private final ChoreRepository choreRepository;
     private final HouseholdChoreRepository householdChoreRepository;
+    private final UserChorePreferenceRepository userChorePreferenceRepository;
     private final SupplyPurchaseRepository supplyPurchaseRepository;
     private final UtilityBillRepository utilityBillRepository;
     private final ReservationRepository reservationRepository;
@@ -73,9 +76,23 @@ public class ReportService {
     }
 
     private List<ChoreReport> buildChoreReports(Long householdId, LocalDate start, LocalDate end) {
-        Map<ChoreType, Integer> difficultyMap = householdChoreRepository.findByHouseholdId(householdId)
+        // 멤버별 난이도 선호도의 평균. 선호도 없는 타입은 HouseholdChore.difficulty로 fallback
+        Map<ChoreType, Integer> defaultDifficultyMap = householdChoreRepository.findByHouseholdId(householdId)
                 .stream()
                 .collect(Collectors.toMap(HouseholdChore::getChoreType, HouseholdChore::getDifficulty));
+
+        Map<ChoreType, Double> avgScoreMap = userChorePreferenceRepository.findAllByHouseholdId(householdId)
+                .stream()
+                .collect(Collectors.groupingBy(UserChorePreference::getChoreType,
+                        Collectors.averagingInt(UserChorePreference::getScore)));
+
+        Map<ChoreType, Float> difficultyMap = defaultDifficultyMap.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> avgScoreMap.containsKey(e.getKey())
+                                ? avgScoreMap.get(e.getKey()).floatValue()
+                                : e.getValue().floatValue()
+                ));
 
         List<Chore> completedChores = choreRepository.findCompletedByHouseholdIdAndDateRange(householdId, start, end);
         Map<ChoreType, List<Chore>> byType = completedChores.stream()
@@ -117,7 +134,7 @@ public class ReportService {
                             .choreType(choreType.name())
                             .choreName(choreType.getDescription())
                             .totalCount(chores.size())
-                            .avgDifficulty(entry.getValue().floatValue())
+                            .avgDifficulty(entry.getValue())
                             .topPerformer(top)
                             .bottomPerformer(bottom)
                             .lastPerformedDaysAgo(daysAgo)
