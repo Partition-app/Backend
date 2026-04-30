@@ -1,6 +1,5 @@
 package com.partition.domain.reservation.service;
 
-import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.reservation.dto.request.CreateReservationRequest;
 import com.partition.domain.reservation.dto.request.DeleteReservationRequest;
 import com.partition.domain.reservation.dto.request.UpdateReservationRequest;
@@ -31,7 +30,6 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final ReservationItemRepository reservationItemRepository;
     private final UserRepository userRepository;
-    private final HouseholdRepository householdRepository;
 
     @Transactional
     public CreateReservationResponse createReservation(Long userId, CreateReservationRequest request) {
@@ -51,7 +49,12 @@ public class ReservationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(UserErrorCode.HAVE_NO_GROUP);
+        }
+
         ReservationItem item = reservationItemRepository.findById(request.getItemId())
+                .filter(i -> i.getHousehold().getId().equals(user.getHouseholdId()))
                 .orElseThrow(() -> new CustomException(ReservationErrorCode.RESERVATION_1003));
 
         if (reservationRepository.existsOverlap(item, request.getStartTime(), request.getEndTime())) {
@@ -100,8 +103,10 @@ public class ReservationService {
             throw new CustomException(ReservationErrorCode.RESERVATION_2009);
         }
 
+        Long householdId = reservation.getItem().getHousehold().getId();
         ReservationItem effectiveItem = request.getItemId() != null
                 ? reservationItemRepository.findById(request.getItemId())
+                        .filter(i -> i.getHousehold().getId().equals(householdId))
                         .orElseThrow(() -> new CustomException(ReservationErrorCode.RESERVATION_1003))
                 : reservation.getItem();
 
