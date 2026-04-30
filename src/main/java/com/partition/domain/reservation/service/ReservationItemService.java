@@ -3,6 +3,7 @@ package com.partition.domain.reservation.service;
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.reservation.dto.request.CreateReservationItemRequest;
 import com.partition.domain.reservation.dto.response.CreateReservationItemResponse;
+import com.partition.domain.reservation.dto.response.ReservationItemResponse;
 import com.partition.domain.reservation.exception.ReservationErrorCode;
 import com.partition.domain.reservation.repository.ReservationItemRepository;
 import com.partition.domain.user.exception.UserErrorCode;
@@ -14,6 +15,8 @@ import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -51,5 +54,22 @@ public class ReservationItemService {
         reservationItemRepository.save(item);
 
         return CreateReservationItemResponse.from(item);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationItemResponse> getItems(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(UserErrorCode.HAVE_NO_GROUP);
+        }
+
+        Household household = householdRepository.findById(user.getHouseholdId())
+                .orElseThrow(() -> new CustomException(UserErrorCode.HAVE_NO_GROUP));
+
+        return reservationItemRepository.findByHousehold(household).stream()
+                .map(ReservationItemResponse::from)
+                .toList();
     }
 }
