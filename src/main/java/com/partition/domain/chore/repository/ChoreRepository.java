@@ -26,6 +26,13 @@ public interface ChoreRepository extends JpaRepository<Chore, Long> {
             @Param("endDate") LocalDate endDate
     );
 
+    @Query("SELECT c FROM Chore c JOIN FETCH c.assignee WHERE c.assignee.householdId = :householdId AND c.date BETWEEN :startDate AND :endDate AND c.isCompleted = true")
+    List<Chore> findCompletedByHouseholdIdAndDateRange(
+            @Param("householdId") Long householdId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
     // 일간 상세 조회용 (특정 날짜) - assignee 정보 함께 가져오기(Fetch Join)
     @Query("SELECT c FROM Chore c JOIN FETCH c.assignee WHERE c.assignee.householdId = :householdId AND c.date = :date")
     List<Chore> findAllByHouseholdIdAndDate(
