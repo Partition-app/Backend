@@ -9,6 +9,8 @@ import java.util.List;
 
 public interface UtilityBillRepository extends JpaRepository<UtilityBill, Long> {
 
+    List<UtilityBill> findAllByHouseholdIdOrderByIdAsc(Long householdId);
+
     List<UtilityBill> findAllByHouseholdIdAndDueDateBetween(Long householdId, LocalDate startDate, LocalDate endDate);
 
     List<UtilityBill> findAllByHouseholdIdAndStatusAndDueDateBetweenOrderByDueDateAscIdAsc(

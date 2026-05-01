@@ -8,6 +8,7 @@ import com.partition.domain.supply.dto.response.SettlementListResponse;
 import com.partition.domain.supply.dto.response.SettlementPurchaseResponse;
 import com.partition.domain.supply.dto.response.SupplyPurchaseListResponse;
 import com.partition.domain.supply.dto.response.SupplyPurchaseResultResponse;
+import com.partition.domain.supply.dto.response.ToggleSettlementStatusResponse;
 import com.partition.domain.supply.dto.response.UpdateSupplyPurchaseResponse;
 import com.partition.domain.supply.exception.SupplyErrorCode;
 import com.partition.domain.supply.repository.SupplyPurchaseRepository;
@@ -239,6 +240,33 @@ public class SupplyPurchaseService {
                 .category(purchase.getCategory().name())
                 .subCategory(purchase.getSubCategory().name())
                 .updatedAt(purchase.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * 구매 기록 정산 상태 토글 (UNSETTLED <-> SETTLED, REQUESTED 상태는 예외)
+     */
+    @Transactional
+    public ToggleSettlementStatusResponse toggleSettlementStatus(Long userId, Long purchaseId) {
+        SupplyPurchase purchase = supplyPurchaseRepository.findById(purchaseId)
+                .orElseThrow(() -> new CustomException(SupplyErrorCode.SUPPLY_5002));
+
+        User caller = getUser(userId);
+        Household callerHousehold = getHousehold(caller);
+        if (!callerHousehold.getId().equals(purchase.getHousehold().getId())) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_5012);
+        }
+
+        if (purchase.getStatus() == SupplyPurchaseStatus.REQUESTED) {
+            throw new CustomException(SupplyErrorCode.SUPPLY_5011);
+        }
+
+        purchase.toggleSettlementStatus();
+
+        return ToggleSettlementStatusResponse.builder()
+                .purchaseId(purchase.getId())
+                .itemName(purchase.getItemName())
+                .status(purchase.getStatus().name())
                 .build();
     }
 

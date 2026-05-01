@@ -3,6 +3,7 @@ package com.partition.domain.utilitybill.controller;
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.CreateBillSettlementRequest;
+import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementDetailResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
@@ -10,6 +11,8 @@ import com.partition.domain.utilitybill.dto.response.BillSettlementRequestedList
 import com.partition.domain.utilitybill.dto.response.ConfirmBillSettlementResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillSettlementResponse;
+import com.partition.domain.utilitybill.dto.response.ToggleBillSettlementStatusResponse;
+import com.partition.domain.utilitybill.dto.response.UpdateBillResponse;
 import com.partition.domain.utilitybill.service.BillSettlementService;
 import com.partition.domain.utilitybill.service.UtilityBillService;
 import com.partition.global.config.security.CustomUserDetails;
@@ -30,15 +33,56 @@ public class UtilityBillController {
     private final UtilityBillService utilityBillService;
     private final BillSettlementService billSettlementService;
 
-    @Operation(summary = "공과금 목록 조회", description = "기간별 공과금 내역을 조회합니다.")
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<BillResponse>>> getBills(
+    @Operation(summary = "공과금 삭제", description = "공과금 기록을 삭제합니다. 정산 완료된 기록은 삭제 불가.")
+    @DeleteMapping("/{billId}")
+    public ResponseEntity<ApiResponse<Void>> deleteBill(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate
+            @PathVariable Long billId
     ) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        List<BillResponse> result = utilityBillService.getBills(userId, startDate, endDate);
+        utilityBillService.deleteBill(userId, billId);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "공과금 삭제 성공", null)
+        );
+    }
+
+    @Operation(summary = "공과금 수정", description = "공과금 기록을 수정합니다. 정산 완료된 기록은 수정 불가.")
+    @PatchMapping("/{billId}")
+    public ResponseEntity<ApiResponse<UpdateBillResponse>> updateBill(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long billId,
+            @RequestBody UpdateBillRequest request
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        UpdateBillResponse result = utilityBillService.updateBill(userId, billId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "공과금 수정 성공", result)
+        );
+    }
+
+    @Operation(summary = "공과금 정산 상태 토글", description = "공과금 기록의 정산 상태를 UNSETTLED/SETTLED 간 토글합니다. REQUESTED 상태는 변경 불가.")
+    @PatchMapping("/{billId}/settlement-status")
+    public ResponseEntity<ApiResponse<ToggleBillSettlementStatusResponse>> toggleSettlementStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long billId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        ToggleBillSettlementStatusResponse result = utilityBillService.toggleSettlementStatus(userId, billId);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "정산 상태 변경 성공", result)
+        );
+    }
+
+    @Operation(summary = "공과금 목록 조회", description = "날짜와 관계없이 모든 공과금 목록을 조회합니다.")
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<BillResponse>>> getBills(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        List<BillResponse> result = utilityBillService.getBills(userId);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 목록 조회 성공", result));
     }
@@ -56,15 +100,13 @@ public class UtilityBillController {
                 .body(ApiResponse.onSuccess("201", "공과금 등록 성공", result));
     }
 
-    @Operation(summary = "정산 대상 공과금 목록 조회", description = "기간 내 미정산 공과금 목록과 인당 금액을 조회합니다.")
+    @Operation(summary = "정산 대상 공과금 목록 조회", description = "미정산 공과금 목록과 인당 금액을 조회합니다.")
     @GetMapping("/settlement/list")
     public ResponseEntity<ApiResponse<BillSettlementListResponse>> getSettlementBills(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        BillSettlementListResponse result = utilityBillService.getSettlementBills(userId, startDate, endDate);
+        BillSettlementListResponse result = utilityBillService.getSettlementBills(userId);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "정산 대상 공과금 목록 조회 성공", result));
     }

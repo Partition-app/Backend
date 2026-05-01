@@ -87,4 +87,13 @@ public class SupplyPurchase extends BaseEntity {
         this.status = SupplyPurchaseStatus.SETTLED;
         this.settlement = settlement;
     }
+
+    public void toggleSettlementStatus() {
+        if (this.status == SupplyPurchaseStatus.UNSETTLED) {
+            this.status = SupplyPurchaseStatus.SETTLED;
+        } else {
+            this.status = SupplyPurchaseStatus.UNSETTLED;
+            this.settlement = null;
+        }
+    }
 }

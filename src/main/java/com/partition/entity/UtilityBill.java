@@ -8,8 +8,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Entity
 @Getter
 @Table(name = "utility_bills")
@@ -29,8 +27,8 @@ public class UtilityBill extends BaseEntity {
     @Column(name = "bill_type", nullable = false, columnDefinition = "varchar(50)")
     private BillCategoryType billType;
 
-    @Column(name = "due_date", nullable = false)
-    private LocalDate dueDate;
+    @Column(name = "pay_day", nullable = false)
+    private Integer payDay;
 
     @Column(nullable = false)
     private Integer amount;
@@ -47,10 +45,10 @@ public class UtilityBill extends BaseEntity {
     private Settlement settlement;
 
     @Builder
-    public UtilityBill(Household household, BillCategoryType billType, LocalDate dueDate, Integer amount, String note) {
+    public UtilityBill(Household household, BillCategoryType billType, Integer payDay, Integer amount, String note) {
         this.household = household;
         this.billType = billType;
-        this.dueDate = dueDate;
+        this.payDay = payDay;
         this.amount = amount;
         this.status = BillStatus.UNSETTLED;
         this.note = note;
@@ -64,5 +62,21 @@ public class UtilityBill extends BaseEntity {
     public void settle(Settlement settlement) {
         this.status = BillStatus.SETTLED;
         this.settlement = settlement;
+    }
+
+    public void update(BillCategoryType billType, Integer payDay, Integer amount, String note) {
+        this.billType = billType;
+        this.payDay = payDay;
+        this.amount = amount;
+        this.note = note;
+    }
+
+    public void toggleSettlementStatus() {
+        if (this.status == BillStatus.UNSETTLED) {
+            this.status = BillStatus.SETTLED;
+        } else {
+            this.status = BillStatus.UNSETTLED;
+            this.settlement = null;
+        }
     }
 }
