@@ -4,7 +4,6 @@ import com.partition.entity.UtilityBill;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -14,7 +13,7 @@ public class BillResponse {
     private Long billId;
     private String utilityType;
     private String utilityTypeName;
-    private LocalDate date;
+    private Integer payDay;
     private Integer amount;
     private String note;
     private String status;
@@ -25,7 +24,7 @@ public class BillResponse {
                 .billId(bill.getId())
                 .utilityType(bill.getBillType().name())
                 .utilityTypeName(bill.getBillType().getLabel())
-                .date(bill.getDueDate())
+                .payDay(bill.getPayDay())
                 .amount(bill.getAmount())
                 .note(bill.getNote())
                 .status(bill.getStatus().name())

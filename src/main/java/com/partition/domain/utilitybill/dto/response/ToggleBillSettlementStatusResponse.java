@@ -3,18 +3,12 @@ package com.partition.domain.utilitybill.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Builder
-public class CreateBillResponse {
+public class ToggleBillSettlementStatusResponse {
 
     private Long billId;
     private String utilityType;
     private String utilityTypeName;
-    private Integer payDay;
-    private Integer amount;
-    private String note;
     private String status;
-    private LocalDateTime createdAt;
 }

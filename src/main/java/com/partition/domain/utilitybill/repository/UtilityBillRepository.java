@@ -4,15 +4,17 @@ import com.partition.entity.UtilityBill;
 import com.partition.entity.enums.BillStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface UtilityBillRepository extends JpaRepository<UtilityBill, Long> {
 
-    List<UtilityBill> findAllByHouseholdIdAndDueDateBetween(Long householdId, LocalDate startDate, LocalDate endDate);
+    List<UtilityBill> findAllByHouseholdIdOrderByIdAsc(Long householdId);
 
-    List<UtilityBill> findAllByHouseholdIdAndStatusAndDueDateBetweenOrderByDueDateAscIdAsc(
-            Long householdId, BillStatus status, LocalDate startDate, LocalDate endDate);
+    List<UtilityBill> findAllByHouseholdIdAndCreatedAtBetween(Long householdId, LocalDateTime start, LocalDateTime end);
+
+    List<UtilityBill> findAllByHouseholdIdAndStatusAndCreatedAtBetweenOrderByCreatedAtAscIdAsc(
+            Long householdId, BillStatus status, LocalDateTime start, LocalDateTime end);
 
     List<UtilityBill> findAllBySettlementId(Long settlementId);
 

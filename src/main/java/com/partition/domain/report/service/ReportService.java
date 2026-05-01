@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
@@ -186,13 +187,13 @@ public class ReportService {
         LocalDate prevStart = prevEnd.minusDays(durationDays);
 
         Map<BillCategoryType, Integer> currentByType = utilityBillRepository
-                .findAllByHouseholdIdAndDueDateBetween(householdId, start, end)
+                .findAllByHouseholdIdAndCreatedAtBetween(householdId, start.atStartOfDay(), end.plusDays(1).atStartOfDay())
                 .stream()
                 .collect(Collectors.groupingBy(UtilityBill::getBillType,
                         Collectors.summingInt(UtilityBill::getAmount)));
 
         Map<BillCategoryType, Integer> previousByType = utilityBillRepository
-                .findAllByHouseholdIdAndDueDateBetween(householdId, prevStart, prevEnd)
+                .findAllByHouseholdIdAndCreatedAtBetween(householdId, prevStart.atStartOfDay(), prevEnd.plusDays(1).atStartOfDay())
                 .stream()
                 .collect(Collectors.groupingBy(UtilityBill::getBillType,
                         Collectors.summingInt(UtilityBill::getAmount)));
@@ -293,13 +294,14 @@ public class ReportService {
                 .toList();
 
         List<SettlementReportResponse.BillItem> bills = utilityBillRepository
-                .findAllByHouseholdIdAndStatusAndDueDateBetweenOrderByDueDateAscIdAsc(
-                        householdId, BillStatus.SETTLED, start, end)
+                .findAllByHouseholdIdAndStatusAndCreatedAtBetweenOrderByCreatedAtAscIdAsc(
+                        householdId, BillStatus.SETTLED,
+                        start.atStartOfDay(), end.plusDays(1).atStartOfDay())
                 .stream()
                 .map(b -> SettlementReportResponse.BillItem.builder()
                         .utilityType(b.getBillType().name())
                         .utilityTypeName(b.getBillType().getLabel())
-                        .billingMonth(b.getDueDate().toString().substring(0, 7))
+                        .billingMonth(b.getCreatedAt().toString().substring(0, 7))
                         .amount(b.getAmount())
                         .build())
                 .toList();

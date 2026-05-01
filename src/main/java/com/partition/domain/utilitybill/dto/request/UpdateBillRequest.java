@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class CreateBillRequest {
+public class UpdateBillRequest {
 
     private String utilityType;
     private Integer payDay;

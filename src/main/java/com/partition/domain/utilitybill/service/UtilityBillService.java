@@ -2,9 +2,12 @@ package com.partition.domain.utilitybill.service;
 
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
+import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
+import com.partition.domain.utilitybill.dto.response.ToggleBillSettlementStatusResponse;
+import com.partition.domain.utilitybill.dto.response.UpdateBillResponse;
 import com.partition.domain.utilitybill.exception.BillErrorCode;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
 import com.partition.domain.user.repository.UserRepository;
@@ -18,8 +21,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Service
@@ -38,20 +39,19 @@ public class UtilityBillService {
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
 
         if (user.getHouseholdId() == null) {
-            throw new CustomException(BillErrorCode.BILL_9002);
+            throw new CustomException(BillErrorCode.BILL_1008);
         }
 
         Household household = householdRepository.findById(user.getHouseholdId())
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9002));
 
         BillCategoryType billType = parseBillType(request.getUtilityType());
-        LocalDate dueDate = parseDate(request.getDueDate());
 
         UtilityBill bill = utilityBillRepository.save(
                 UtilityBill.builder()
                         .household(household)
                         .billType(billType)
-                        .dueDate(dueDate)
+                        .payDay(request.getPayDay())
                         .amount(request.getAmount())
                         .note(request.getNote())
                         .build()
@@ -59,31 +59,18 @@ public class UtilityBillService {
 
         return CreateBillResponse.builder()
                 .billId(bill.getId())
-                .billType(bill.getBillType().name())
-                .billTypeName(bill.getBillType().getLabel())
-                .dueDate(bill.getDueDate())
+                .utilityType(bill.getBillType().name())
+                .utilityTypeName(bill.getBillType().getLabel())
+                .payDay(bill.getPayDay())
                 .amount(bill.getAmount())
                 .note(bill.getNote())
+                .status(bill.getStatus().name())
                 .createdAt(bill.getCreatedAt())
                 .build();
     }
 
     @Transactional(readOnly = true)
-    public List<BillResponse> getBills(Long userId, String startDate, String endDate) {
-        if (startDate == null || startDate.trim().isEmpty()) {
-            throw new CustomException(BillErrorCode.BILL_2001);
-        }
-        if (endDate == null || endDate.trim().isEmpty()) {
-            throw new CustomException(BillErrorCode.BILL_2002);
-        }
-
-        LocalDate start = parseDateForQuery(startDate);
-        LocalDate end = parseDateForQuery(endDate);
-
-        if (start.isAfter(end)) {
-            throw new CustomException(BillErrorCode.BILL_2004);
-        }
-
+    public List<BillResponse> getBills(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
 
@@ -91,28 +78,14 @@ public class UtilityBillService {
             throw new CustomException(BillErrorCode.BILL_2005);
         }
 
-        return utilityBillRepository.findAllByHouseholdIdAndDueDateBetween(user.getHouseholdId(), start, end)
+        return utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(user.getHouseholdId())
                 .stream()
                 .map(BillResponse::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public BillSettlementListResponse getSettlementBills(Long userId, String startDate, String endDate) {
-        if (startDate == null || startDate.trim().isEmpty()) {
-            throw new CustomException(BillErrorCode.BILL_2001);
-        }
-        if (endDate == null || endDate.trim().isEmpty()) {
-            throw new CustomException(BillErrorCode.BILL_2002);
-        }
-
-        LocalDate start = parseDateForQuery(startDate);
-        LocalDate end = parseDateForQuery(endDate);
-
-        if (start.isAfter(end)) {
-            throw new CustomException(BillErrorCode.BILL_2004);
-        }
-
+    public BillSettlementListResponse getSettlementBills(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
 
@@ -123,8 +96,7 @@ public class UtilityBillService {
         int memberCount = userRepository.findByHouseholdId(user.getHouseholdId()).size();
 
         List<UtilityBill> bills = utilityBillRepository
-                .findAllByHouseholdIdAndStatusAndDueDateBetweenOrderByDueDateAscIdAsc(
-                        user.getHouseholdId(), BillStatus.UNSETTLED, start, end);
+                .findAllByHouseholdIdAndStatus(user.getHouseholdId(), BillStatus.UNSETTLED);
 
         int totalAmount = bills.stream().mapToInt(UtilityBill::getAmount).sum();
         int amountPerMember = memberCount > 0 ? totalAmount / memberCount : 0;
@@ -140,7 +112,7 @@ public class UtilityBillService {
                         .map(b -> BillSettlementListResponse.BillItem.builder()
                                 .billId(b.getId())
                                 .utilityTypeName(b.getBillType().getLabel())
-                                .dueDate(b.getDueDate())
+                                .payDay(b.getPayDay())
                                 .amount(b.getAmount())
                                 .note(b.getNote())
                                 .build())
@@ -148,12 +120,84 @@ public class UtilityBillService {
                 .build();
     }
 
-    private LocalDate parseDateForQuery(String date) {
-        try {
-            return LocalDate.parse(date);
-        } catch (DateTimeParseException e) {
-            throw new CustomException(BillErrorCode.BILL_2003);
+    @Transactional
+    public UpdateBillResponse updateBill(Long userId, Long billId, UpdateBillRequest request) {
+        UtilityBill bill = utilityBillRepository.findById(billId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_6008));
+
+        User caller = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (caller.getHouseholdId() == null ||
+                !caller.getHouseholdId().equals(bill.getHousehold().getId())) {
+            throw new CustomException(BillErrorCode.BILL_6009);
         }
+
+        if (bill.getStatus() == BillStatus.SETTLED) {
+            throw new CustomException(BillErrorCode.BILL_6007);
+        }
+
+        validateUpdateRequest(request);
+
+        BillCategoryType billType = parseBillType6(request.getUtilityType());
+        bill.update(billType, request.getPayDay(), request.getAmount(), request.getNote());
+
+        return UpdateBillResponse.builder()
+                .billId(bill.getId())
+                .utilityType(bill.getBillType().name())
+                .utilityTypeName(bill.getBillType().getLabel())
+                .payDay(bill.getPayDay())
+                .amount(bill.getAmount())
+                .note(bill.getNote())
+                .status(bill.getStatus().name())
+                .build();
+    }
+
+    @Transactional
+    public void deleteBill(Long userId, Long billId) {
+        UtilityBill bill = utilityBillRepository.findById(billId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_7001));
+
+        User caller = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (caller.getHouseholdId() == null ||
+                !caller.getHouseholdId().equals(bill.getHousehold().getId())) {
+            throw new CustomException(BillErrorCode.BILL_7003);
+        }
+
+        if (bill.getStatus() == BillStatus.SETTLED) {
+            throw new CustomException(BillErrorCode.BILL_7002);
+        }
+
+        utilityBillRepository.delete(bill);
+    }
+
+    @Transactional
+    public ToggleBillSettlementStatusResponse toggleSettlementStatus(Long userId, Long billId) {
+        UtilityBill bill = utilityBillRepository.findById(billId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_5001));
+
+        User caller = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (caller.getHouseholdId() == null ||
+                !caller.getHouseholdId().equals(bill.getHousehold().getId())) {
+            throw new CustomException(BillErrorCode.BILL_5003);
+        }
+
+        if (bill.getStatus() == BillStatus.REQUESTED) {
+            throw new CustomException(BillErrorCode.BILL_5002);
+        }
+
+        bill.toggleSettlementStatus();
+
+        return ToggleBillSettlementStatusResponse.builder()
+                .billId(bill.getId())
+                .utilityType(bill.getBillType().name())
+                .utilityTypeName(bill.getBillType().getLabel())
+                .status(bill.getStatus().name())
+                .build();
     }
 
     private void validateRequest(CreateBillRequest request) {
@@ -163,18 +207,38 @@ public class UtilityBillService {
 
         parseBillType(request.getUtilityType());
 
-        if (request.getDueDate() == null || request.getDueDate().trim().isEmpty()) {
+        if (request.getPayDay() == null) {
             throw new CustomException(BillErrorCode.BILL_1003);
         }
 
-        parseDate(request.getDueDate());
+        if (request.getPayDay() < 1 || request.getPayDay() > 31) {
+            throw new CustomException(BillErrorCode.BILL_1007);
+        }
 
         if (request.getAmount() == null) {
             throw new CustomException(BillErrorCode.BILL_1005);
         }
 
-        if (request.getAmount() < 0) {
+        if (request.getAmount() < 1) {
             throw new CustomException(BillErrorCode.BILL_1006);
+        }
+    }
+
+    private void validateUpdateRequest(UpdateBillRequest request) {
+        if (request.getUtilityType() == null || request.getUtilityType().trim().isEmpty()) {
+            throw new CustomException(BillErrorCode.BILL_6001);
+        }
+        if (request.getPayDay() == null) {
+            throw new CustomException(BillErrorCode.BILL_6003);
+        }
+        if (request.getPayDay() < 1 || request.getPayDay() > 31) {
+            throw new CustomException(BillErrorCode.BILL_6004);
+        }
+        if (request.getAmount() == null) {
+            throw new CustomException(BillErrorCode.BILL_6005);
+        }
+        if (request.getAmount() < 1) {
+            throw new CustomException(BillErrorCode.BILL_6006);
         }
     }
 
@@ -186,11 +250,11 @@ public class UtilityBillService {
         }
     }
 
-    private LocalDate parseDate(String date) {
+    private BillCategoryType parseBillType6(String utilityType) {
         try {
-            return LocalDate.parse(date);
-        } catch (DateTimeParseException e) {
-            throw new CustomException(BillErrorCode.BILL_1004);
+            return BillCategoryType.valueOf(utilityType);
+        } catch (Exception e) {
+            throw new CustomException(BillErrorCode.BILL_6002);
         }
     }
 }

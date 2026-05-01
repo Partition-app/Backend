@@ -5,8 +5,8 @@ import com.partition.domain.supply.dto.request.CreateSupplyPurchaseRequest;
 import com.partition.domain.supply.dto.request.UpdateSupplyPurchaseRequest;
 import com.partition.domain.supply.dto.response.CreateSupplyPurchaseResponse;
 import com.partition.domain.supply.dto.response.ReceiptAnalysisResponse;
-
 import com.partition.domain.supply.dto.response.SupplyPurchaseListResponse;
+import com.partition.domain.supply.dto.response.ToggleSettlementStatusResponse;
 import com.partition.domain.supply.dto.response.UpdateSupplyPurchaseResponse;
 import com.partition.domain.supply.service.ReceiptAnalysisService;
 import com.partition.domain.supply.service.SupplyPurchaseService;
@@ -63,6 +63,20 @@ public class SupplyPurchaseController {
 
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("200", "공용 소비 물품 구매 기록 수정 성공", result)
+        );
+    }
+
+    @Operation(summary = "공용 구매 물품 정산 상태 토글", description = "구매 기록의 정산 상태를 UNSETTLED/SETTLED 간 토글합니다. REQUESTED 상태는 변경 불가.")
+    @PatchMapping("/{purchaseId}/settlement-status")
+    public ResponseEntity<ApiResponse<ToggleSettlementStatusResponse>> toggleSettlementStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long purchaseId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        ToggleSettlementStatusResponse result = supplyPurchaseService.toggleSettlementStatus(userId, purchaseId);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "정산 상태 변경 성공", result)
         );
     }
 
