@@ -246,7 +246,7 @@ public class BillSettlementService {
                         .map(b -> BillSettlementDetailResponse.BillItem.builder()
                                 .billId(b.getId())
                                 .utilityTypeName(b.getBillType().getLabel())
-                                .dueDate(b.getDueDate())
+                                .payDay(b.getPayDay())
                                 .amount(b.getAmount())
                                 .build())
                         .toList())

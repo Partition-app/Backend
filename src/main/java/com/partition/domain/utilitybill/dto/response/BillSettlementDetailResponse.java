@@ -3,7 +3,6 @@ package com.partition.domain.utilitybill.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,7 +32,7 @@ public class BillSettlementDetailResponse {
     public static class BillItem {
         private Long billId;
         private String utilityTypeName;
-        private LocalDate dueDate;
+        private Integer payDay;
         private Integer amount;
     }
 }

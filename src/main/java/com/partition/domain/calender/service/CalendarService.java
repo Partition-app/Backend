@@ -44,13 +44,16 @@ public class CalendarService {
 
         List<Schedule> schedules = scheduleRepository.findAllByHouseholdIdAndDateRange(householdId, startDate, endDate);
         List<Chore> chores = choreRepository.findAllByHouseholdIdAndDateRange(householdId, startDate, endDate);
-        List<UtilityBill> bills = utilityBillRepository.findAllByHouseholdIdAndDueDateBetween(householdId, startDate, endDate);
+        List<UtilityBill> bills = utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(householdId);
 
         Map<LocalDate, MonthlyCounts> countMap = new HashMap<>();
 
         for (Schedule s : schedules) countMap.computeIfAbsent(s.getDate(), k -> new MonthlyCounts()).scheduleCount++;
         for (Chore c : chores) countMap.computeIfAbsent(c.getDate(), k -> new MonthlyCounts()).choreCount++;
-        for (UtilityBill b : bills) countMap.computeIfAbsent(b.getDueDate(), k -> new MonthlyCounts()).utilityBillsCount++;
+        for (UtilityBill b : bills) {
+            int actualDay = Math.min(b.getPayDay(), endDate.lengthOfMonth());
+            countMap.computeIfAbsent(LocalDate.of(year, month, actualDay), k -> new MonthlyCounts()).utilityBillsCount++;
+        }
 
         return countMap.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
