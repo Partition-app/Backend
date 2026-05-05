@@ -3,6 +3,7 @@ package com.partition.domain.reservation.service;
 import com.partition.domain.reservation.dto.request.CreateReservationRequest;
 import com.partition.domain.reservation.dto.request.DeleteReservationRequest;
 import com.partition.domain.reservation.dto.request.UpdateReservationRequest;
+import com.partition.domain.reservation.dto.response.CompleteReservationResponse;
 import com.partition.domain.reservation.dto.response.CreateReservationResponse;
 import com.partition.domain.reservation.dto.response.ReservationListItemResponse;
 import com.partition.domain.reservation.exception.ReservationErrorCode;
@@ -30,6 +31,27 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final ReservationItemRepository reservationItemRepository;
     private final UserRepository userRepository;
+
+    @Transactional
+    public CompleteReservationResponse completeReservation(Long userId, Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new CustomException(ReservationErrorCode.RESERVATION_2008));
+
+        if (!reservation.getUser().getId().equals(userId)) {
+            throw new CustomException(ReservationErrorCode.RESERVATION_2012);
+        }
+
+        if (reservation.isCompleted()) {
+            throw new CustomException(ReservationErrorCode.RESERVATION_2013);
+        }
+
+        reservation.complete();
+
+        return CompleteReservationResponse.builder()
+                .reservationId(reservation.getId())
+                .isCompleted(true)
+                .build();
+    }
 
     @Transactional
     public CreateReservationResponse createReservation(Long userId, CreateReservationRequest request) {

@@ -33,12 +33,19 @@ public class Reservation extends BaseEntity {
     @Column(nullable = false)
     private LocalDateTime endTime;
 
+    private boolean isCompleted;
+
     @Builder
     public Reservation(ReservationItem item, User user, LocalDateTime startTime, LocalDateTime endTime) {
         this.item = item;
         this.user = user;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.isCompleted = false;
+    }
+
+    public void complete() {
+        this.isCompleted = true;
     }
 
     public void updateItem(ReservationItem item) {

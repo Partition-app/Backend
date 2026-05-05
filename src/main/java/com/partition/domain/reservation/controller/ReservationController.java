@@ -4,6 +4,7 @@ import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.reservation.dto.request.CreateReservationItemRequest;
 import com.partition.domain.reservation.dto.request.DeleteReservationItemRequest;
 import com.partition.domain.reservation.dto.request.UpdateReservationItemRequest;
+import com.partition.domain.reservation.dto.response.CompleteReservationResponse;
 import com.partition.domain.reservation.dto.response.CreateReservationItemResponse;
 import com.partition.domain.reservation.dto.response.ReservationItemResponse;
 import com.partition.domain.reservation.dto.response.UpdateReservationItemResponse;
@@ -134,6 +135,18 @@ public class ReservationController {
         reservationService.deleteReservations(userId, request);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "예약 삭제 성공"));
+    }
+
+    @Operation(summary = "예약 완료 처리", description = "본인의 예약을 완료 처리합니다.")
+    @PatchMapping("/{reservationId}/complete")
+    public ResponseEntity<ApiResponse<CompleteReservationResponse>> completeReservation(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long reservationId) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        CompleteReservationResponse result = reservationService.completeReservation(userId, reservationId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "예약 완료 처리 성공", result));
     }
 
     @Operation(summary = "예약 수정", description = "등록된 예약의 대상 또는 시간을 수정합니다.")

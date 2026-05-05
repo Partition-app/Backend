@@ -23,7 +23,9 @@ public enum ReservationErrorCode implements BaseErrorCode {
     RESERVATION_2008(404, "존재하지 않는 예약입니다."),
     RESERVATION_2009(403, "본인의 예약만 수정할 수 있습니다."),
     RESERVATION_2010(400, "삭제할 예약을 선택해주세요."),
-    RESERVATION_2011(400, "날짜 형식이 올바르지 않습니다. (yyyy-MM-dd)");
+    RESERVATION_2011(400, "날짜 형식이 올바르지 않습니다. (yyyy-MM-dd)"),
+    RESERVATION_2012(403, "본인의 예약만 완료 처리할 수 있습니다."),
+    RESERVATION_2013(409, "이미 완료 처리된 예약입니다.");
 
     private final int status;
     private final String message;
