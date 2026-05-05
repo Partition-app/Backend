@@ -44,8 +44,9 @@ public class Reservation extends BaseEntity {
         this.isCompleted = false;
     }
 
-    public void complete() {
+    public void complete(LocalDateTime completedAt) {
         this.isCompleted = true;
+        this.endTime = completedAt;
     }
 
     public void updateItem(ReservationItem item) {

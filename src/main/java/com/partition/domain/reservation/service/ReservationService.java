@@ -45,7 +45,7 @@ public class ReservationService {
             throw new CustomException(ReservationErrorCode.RESERVATION_2013);
         }
 
-        reservation.complete();
+        reservation.complete(LocalDateTime.now());
 
         return CompleteReservationResponse.builder()
                 .reservationId(reservation.getId())
