@@ -5,7 +5,17 @@
       "Bash(./gradlew compileJava)",
       "Bash(./gradlew clean *)",
       "Bash(xargs ls *)",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(git *)",
+      "Bash(claude mcp *)",
+      "Bash(npx -y @notionhq/notion-mcp-server --version)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 *)",
+      "mcp__notion__API-get-self",
+      "mcp__notion__API-post-search",
+      "mcp__notion__API-get-block-children",
+      "mcp__notion__API-retrieve-a-page",
+      "mcp__notion__API-post-page"
     ]
   }
 }

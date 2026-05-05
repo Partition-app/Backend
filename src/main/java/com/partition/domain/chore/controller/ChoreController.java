@@ -2,7 +2,9 @@ package com.partition.domain.chore.controller;
 
 import com.partition.domain.chore.dto.request.AutoAssignRequest;
 import com.partition.domain.chore.dto.response.AssignmentResponse;
+import com.partition.domain.chore.dto.response.CompleteChoreResponse;
 import com.partition.domain.chore.service.ChoreAssignmentService;
+import com.partition.domain.chore.service.ChoreService;
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.global.config.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +24,7 @@ import java.util.List;
 public class ChoreController {
 
     private final ChoreAssignmentService assignmentService;
+    private final ChoreService choreService;
 
     @Operation(summary = "집안일 자동 배정 요청", description = "AI 알고리즘(FastAPI)을 호출하여 지정된 기간 동안, 선택된 집안일을 배정하고 결과를 저장합니다.")
     @PostMapping("/auto-assign")
@@ -41,6 +44,20 @@ public class ChoreController {
 
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("200", "집안일 배정이 완료되었습니다.", result)
+        );
+    }
+
+    @Operation(summary = "집안일 완료 처리", description = "본인에게 배정된 집안일을 완료 처리합니다.")
+    @PatchMapping("/{choreId}/complete")
+    public ResponseEntity<ApiResponse<CompleteChoreResponse>> completeChore(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long choreId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        CompleteChoreResponse result = choreService.completeChore(userId, choreId);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("200", "집안일 완료 처리 성공", result)
         );
     }
 }

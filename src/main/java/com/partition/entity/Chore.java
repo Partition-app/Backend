@@ -37,4 +37,8 @@ public class Chore extends BaseEntity {
         this.date = date;
         this.isCompleted = false;
     }
+
+    public void complete() {
+        this.isCompleted = true;
+    }
 }
