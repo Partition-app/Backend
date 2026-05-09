@@ -15,7 +15,10 @@
       "mcp__notion__API-post-search",
       "mcp__notion__API-get-block-children",
       "mcp__notion__API-retrieve-a-page",
-      "mcp__notion__API-post-page"
+      "mcp__notion__API-post-page",
+      "mcp__notion__API-update-a-block",
+      "mcp__notion__API-patch-block-children",
+      "mcp__notion__API-delete-a-block"
     ]
   }
 }
