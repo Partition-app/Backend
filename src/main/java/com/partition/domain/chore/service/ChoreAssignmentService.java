@@ -41,6 +41,7 @@ public class ChoreAssignmentService {
     @Value("${fastapi.url}")
     private String FASFASTAPI_URL;
 
+    @Transactional
     public List<AssignmentResponse.AssignmentResult> assignChores(Long userId, LocalDate startDate, int periodDays, List<ChoreType> targetChoreTypes) {
         User requester = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
@@ -78,15 +79,6 @@ public class ChoreAssignmentService {
         }
 
 
-        saveAssignmentsInTransaction(response, members, householdChores, householdId, startDate, endDate);
-
-        log.info("집안일 배정 완료: 총 {}건", response.getAssignments().size());
-
-        return response.getAssignments();
-    }
-
-    @Transactional
-    public void saveAssignmentsInTransaction(AssignmentResponse response, List<User> members, List<HouseholdChore> householdChores, Long householdId, LocalDate startDate, LocalDate endDate) {
         choreRepository.deleteAllByHouseholdIdAndDateRange(householdId, startDate, endDate);
 
         Map<Long, User> userMap = members.stream().collect(Collectors.toMap(User::getId, u -> u));
@@ -109,6 +101,10 @@ public class ChoreAssignmentService {
 
             choreRepository.save(chore);
         }
+
+        log.info("집안일 배정 완료: 총 {}건", response.getAssignments().size());
+
+        return response.getAssignments();
     }
 
     private AssignmentRequest createRequest(Long householdId, LocalDate startDate, LocalDate endDate,
