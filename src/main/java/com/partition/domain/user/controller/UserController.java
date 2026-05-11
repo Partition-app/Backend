@@ -82,7 +82,7 @@ public class UserController {
         Long userId = Long.parseLong(userDetails.getUsername());
         userService.withdraw(userId);
 
-        return ResponseEntity.ok(ApiResponse.onSuccess("200", "회원탈퇴 성공"));
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "회원탈퇴 성공", null));
     }
 
 }
