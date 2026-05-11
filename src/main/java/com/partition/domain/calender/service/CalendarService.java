@@ -11,6 +11,7 @@ import com.partition.entity.Chore;
 import com.partition.entity.Schedule;
 import com.partition.entity.User;
 import com.partition.entity.UtilityBill;
+import com.partition.entity.enums.BillStatus;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -106,8 +107,21 @@ public class CalendarService {
                         .build())
                 .toList();
 
-        // 두 리스트 합치기 (정렬: CHORE -> SCHEDULE)
-        return Stream.concat(chores.stream(), schedules.stream())
+        // 해당 날짜의 공과금 조회 (payDay 기준, 월말 처리 포함)
+        int daysInMonth = date.lengthOfMonth();
+        List<CalendarDailyResponse> bills = utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(householdId)
+                .stream()
+                .filter(b -> Math.min(b.getPayDay(), daysInMonth) == date.getDayOfMonth())
+                .map(b -> CalendarDailyResponse.builder()
+                        .category("UTILITY_BILL")
+                        .id(b.getId())
+                        .title(b.getBillType().getLabel())
+                        .amount(b.getAmount())
+                        .isCompleted(b.getStatus() == BillStatus.SETTLED)
+                        .build())
+                .toList();
+
+        return Stream.concat(Stream.concat(chores.stream(), schedules.stream()), bills.stream())
                 .sorted(Comparator.comparing(CalendarDailyResponse::getCategory))
                 .collect(Collectors.toList());
     }
