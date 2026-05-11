@@ -2,6 +2,7 @@ package com.partition.global.exception;
 
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.user.exception.UserErrorCode;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -59,13 +60,13 @@ public class GlobalExceptionHandler {
 
     // 4. 그 외 예상치 못한 Exception (500)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleException(Exception ex) {
-        log.error("Internal Server Error: ", ex);
+    public ResponseEntity<ApiResponse<Object>> handleException(Exception ex, HttpServletRequest request) {
+        log.error("[{} {}] Internal Server Error: ", request.getMethod(), request.getRequestURI(), ex);
 
         return ResponseEntity
                 .status(500)
                 .body(ApiResponse.onFailure(
-                        GlobalErrorCode.INTERNAL_SERVER_ERROR.name(), // GlobalErrorCode 사용 권장
+                        GlobalErrorCode.INTERNAL_SERVER_ERROR.name(),
                         "서버 내부 오류입니다. 관리자에게 문의하세요.",
                         null
                 ));
