@@ -33,6 +33,6 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "로그아웃 처리합니다. 클라이언트에서 저장된 토큰을 삭제해야 합니다.")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.onSuccess("200", "로그아웃 성공"));
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "로그아웃 성공", null));
     }
 }
