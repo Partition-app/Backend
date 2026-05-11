@@ -74,4 +74,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "FCM 토큰이 등록되었습니다.", null));
     }
 
+    @Operation(summary = "회원탈퇴", description = "카카오 연동을 해제하고 계정을 삭제합니다.")
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> withdraw(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        userService.withdraw(userId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "회원탈퇴 성공"));
+    }
+
 }

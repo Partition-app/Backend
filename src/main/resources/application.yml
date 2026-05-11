@@ -34,5 +34,8 @@ jwt:
 fastapi:
   url: ${FASTAPI_URL}
 
+kakao:
+  admin-key: ${KAKAO_ADMIN_KEY}
+
 firebase:
   credentials-path: ${FIREBASE_CREDENTIALS_PATH}
