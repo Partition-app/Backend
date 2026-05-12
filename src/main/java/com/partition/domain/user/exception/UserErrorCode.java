@@ -13,7 +13,8 @@ public enum UserErrorCode implements BaseErrorCode {
     DUPLICATED_EMAIL(409, "이미 가입된 이메일입니다."),
     DUPLICATED_NICKNAME(409, "이미 사용중인 닉네임입니다."),
     MISSING_REQUIRED_VALUE(400, "필수 항목이 누락되었습니다."),
-    HAVE_NO_GROUP(404, "그룹에 속해있지 않습니다.");
+    HAVE_NO_GROUP(404, "그룹에 속해있지 않습니다."),
+    USER_4002(400, "그룹 리더는 탈퇴할 수 없습니다. 리더를 위임한 후 탈퇴해주세요.");
 
 
     private final int status;

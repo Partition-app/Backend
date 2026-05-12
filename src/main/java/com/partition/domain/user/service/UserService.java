@@ -3,6 +3,7 @@ package com.partition.domain.user.service;
 import com.partition.domain.user.exception.UserErrorCode;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.User;
+import com.partition.entity.enums.UserRole;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,8 +48,18 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
+        if (user.getMemberRole() == UserRole.LEADER && user.getHouseholdId() != null) {
+            long activeMembers = userRepository.findByHouseholdId(user.getHouseholdId())
+                    .stream()
+                    .filter(m -> Boolean.TRUE.equals(m.getIsActive()))
+                    .count();
+            if (activeMembers > 1) {
+                throw new CustomException(UserErrorCode.USER_4002);
+            }
+        }
+
         unlinkKakao(user.getProviderId());
-        userRepository.delete(user);
+        user.deactivate();
     }
 
     private void unlinkKakao(String providerId) {

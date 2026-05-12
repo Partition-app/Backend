@@ -114,7 +114,10 @@ public class HouseholdService {
             throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4001);
         }
 
-        return userRepository.findByHouseholdId(user.getHouseholdId());
+        return userRepository.findByHouseholdId(user.getHouseholdId())
+                .stream()
+                .filter(m -> Boolean.TRUE.equals(m.getIsActive()))
+                .toList();
     }
 
     @Transactional

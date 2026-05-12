@@ -68,6 +68,7 @@ public class AuthService {
                             .build());
                 });
 
+
         // JWT 발급
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getMemberRole().getKey());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
