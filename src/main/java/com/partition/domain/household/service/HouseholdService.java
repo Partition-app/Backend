@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -127,7 +128,7 @@ public class HouseholdService {
         User target = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
 
-        if (!user.getHouseholdId().equals(target.getHouseholdId())) {
+        if (!Objects.equals(user.getHouseholdId(), target.getHouseholdId())) {
             throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4004);
         }
 
