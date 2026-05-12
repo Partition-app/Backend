@@ -9,5 +9,6 @@ public class HouseholdInfoResponse {
 
     private Long householdId;
     private String householdName;
+    private String inviteCode;
     private Boolean isLeader;
 }

@@ -100,6 +100,7 @@ public class HouseholdService {
         return HouseholdInfoResponse.builder()
                 .householdId(household.getId())
                 .householdName(household.getName())
+                .inviteCode(household.getInviteCode())
                 .isLeader(user.getMemberRole() == UserRole.LEADER)
                 .build();
     }
