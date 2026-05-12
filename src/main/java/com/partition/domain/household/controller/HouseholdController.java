@@ -2,7 +2,11 @@ package com.partition.domain.household.controller;
 
 import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.household.dto.request.CreateHouseholdRequest;
+import com.partition.domain.household.dto.request.DelegateLeaderRequest;
 import com.partition.domain.household.dto.request.JoinHouseholdRequest;
+import com.partition.domain.household.dto.request.UpdateHouseholdNameRequest;
+import com.partition.domain.household.dto.response.HouseholdInfoResponse;
+import com.partition.domain.household.dto.response.HouseholdMemberResponse;
 import com.partition.domain.household.service.HouseholdService;
 import com.partition.entity.Household;
 import com.partition.global.config.security.CustomUserDetails;
@@ -11,11 +15,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -73,5 +75,65 @@ public class HouseholdController {
                         )
                 )
         );
+    }
+
+    @Operation(summary = "그룹 이름 변경", description = "방장이 그룹 이름을 변경합니다.")
+    @PatchMapping("/name")
+    public ResponseEntity<ApiResponse<Void>> updateHouseholdName(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid UpdateHouseholdNameRequest request) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        householdService.updateHouseholdName(userId, request.getName());
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "그룹 이름 변경 성공", null));
+    }
+
+    @Operation(summary = "현재 그룹 정보 조회", description = "현재 소속된 그룹의 이름, ID, 방장 여부를 조회합니다.")
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<HouseholdInfoResponse>> getHouseholdInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        HouseholdInfoResponse response = householdService.getHouseholdInfo(userId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "그룹 정보 조회 성공", response));
+    }
+
+    @Operation(summary = "그룹 멤버 조회", description = "현재 소속된 그룹의 멤버 목록을 조회합니다.")
+    @GetMapping("/members")
+    public ResponseEntity<ApiResponse<List<HouseholdMemberResponse>>> getMembers(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        List<HouseholdMemberResponse> members = householdService.getMembers(userId)
+                .stream()
+                .map(HouseholdMemberResponse::from)
+                .toList();
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "그룹 멤버 조회 성공", members));
+    }
+
+    @Operation(summary = "리더 위임", description = "방장이 같은 그룹의 다른 멤버에게 방장 권한을 위임합니다.")
+    @PatchMapping("/leader")
+    public ResponseEntity<ApiResponse<Void>> delegateLeader(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid DelegateLeaderRequest request) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        householdService.delegateLeader(userId, request.getTargetUserId());
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "리더 위임 성공", null));
+    }
+
+    @Operation(summary = "그룹 나가기", description = "현재 소속된 그룹에서 나갑니다. 방장은 나갈 수 없습니다.")
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> leaveHousehold(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        householdService.leaveHousehold(userId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "그룹 나가기 성공", null));
     }
 }

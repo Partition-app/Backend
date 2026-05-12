@@ -1,6 +1,7 @@
 package com.partition.domain.household.service;
 
 import com.partition.domain.chore.repository.HouseholdChoreRepository;
+import com.partition.domain.household.dto.response.HouseholdInfoResponse;
 import com.partition.domain.household.exception.HouseholdErrorCode;
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.user.exception.UserErrorCode;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +63,92 @@ public class HouseholdService {
 
         user.updateHousehold(household.getId(), UserRole.LEADER);
         return household;
+    }
+
+    @Transactional
+    public void updateHouseholdName(Long userId, String name) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4001);
+        }
+
+        if (user.getMemberRole() != UserRole.LEADER) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4003);
+        }
+
+        Household household = householdRepository.findById(user.getHouseholdId())
+                .orElseThrow(() -> new CustomException(HouseholdErrorCode.HOUSEHOLD_NOT_FOUND));
+
+        household.updateName(name);
+    }
+
+    @Transactional(readOnly = true)
+    public HouseholdInfoResponse getHouseholdInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4001);
+        }
+
+        Household household = householdRepository.findById(user.getHouseholdId())
+                .orElseThrow(() -> new CustomException(HouseholdErrorCode.HOUSEHOLD_NOT_FOUND));
+
+        return HouseholdInfoResponse.builder()
+                .householdId(household.getId())
+                .householdName(household.getName())
+                .isLeader(user.getMemberRole() == UserRole.LEADER)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> getMembers(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4001);
+        }
+
+        return userRepository.findByHouseholdId(user.getHouseholdId());
+    }
+
+    @Transactional
+    public void delegateLeader(Long userId, Long targetUserId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (user.getMemberRole() != UserRole.LEADER) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4003);
+        }
+
+        User target = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (!user.getHouseholdId().equals(target.getHouseholdId())) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4004);
+        }
+
+        user.updateHousehold(user.getHouseholdId(), UserRole.MEMBER);
+        target.updateHousehold(target.getHouseholdId(), UserRole.LEADER);
+    }
+
+    @Transactional
+    public void leaveHousehold(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4001);
+        }
+
+        if (user.getMemberRole() == UserRole.LEADER) {
+            throw new CustomException(HouseholdErrorCode.HOUSEHOLD_4002);
+        }
+
+        user.updateHousehold(null, UserRole.GUEST);
     }
 
     @Transactional

@@ -50,6 +50,18 @@ public class AlarmService {
     }
 
     @Transactional
+    public void deleteAlarm(Long userId, Long alarmId) {
+        Alarm alarm = alarmRepository.findById(alarmId)
+                .orElseThrow(() -> new CustomException(AlarmErrorCode.ALARM_1001));
+
+        if (!alarm.getUserId().equals(userId)) {
+            throw new CustomException(AlarmErrorCode.ALARM_1002);
+        }
+
+        alarmRepository.delete(alarm);
+    }
+
+    @Transactional
     public void createSettlementAlarms(List<SettlementMember> members, Long settlementId, AlarmType type) {
         List<Alarm> alarms = members.stream()
                 .map(member -> Alarm.builder()

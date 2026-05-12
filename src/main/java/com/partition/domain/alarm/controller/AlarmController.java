@@ -44,4 +44,16 @@ public class AlarmController {
                 ApiResponse.onSuccess("200", "알림 읽음 처리 성공", result)
         );
     }
+
+    @Operation(summary = "알림 삭제", description = "특정 알림을 삭제합니다.")
+    @DeleteMapping("/{alarmId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAlarm(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long alarmId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        alarmService.deleteAlarm(userId, alarmId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "알림 삭제 성공", null));
+    }
 }
