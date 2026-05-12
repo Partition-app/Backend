@@ -84,4 +84,11 @@ public class User extends BaseEntity {
         this.householdId = householdId;
         this.memberRole = role;
     }
+
+    public void deactivate() {
+        this.isActive = false;
+        this.provider = null;
+        this.providerId = null;
+        this.email = "withdrawn_" + this.id + "@deleted.com";
+    }
 }

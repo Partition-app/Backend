@@ -8,4 +8,6 @@ import java.util.List;
 public interface SettlementMemberRepository extends JpaRepository<SettlementMember, Long> {
 
     List<SettlementMember> findAllBySettlementId(Long settlementId);
+
+    void deleteByUserId(Long userId);
 }
