@@ -31,13 +31,15 @@ public class FcmService {
     }
 
     public void sendNearHomeNotification(String fcmToken, String senderName) {
+        String safeName = (senderName != null && !senderName.isBlank()) ? senderName : "사용자";
         Message message = Message.builder()
                 .setToken(fcmToken)
                 .setNotification(Notification.builder()
                         .setTitle("파티션")
-                        .setBody(senderName + "님이 집 근처에 있는 것 같아요.")
+                        .setBody(safeName + "님이 집 근처에 있는 것 같아요.")
                         .build())
-                .putAllData(Map.of("type", "NEAR_HOME_ARRIVAL", "senderName", senderName))
+                .putData("type", "NEAR_HOME_ARRIVAL")
+                .putData("senderName", safeName)
                 .build();
 
         try {
