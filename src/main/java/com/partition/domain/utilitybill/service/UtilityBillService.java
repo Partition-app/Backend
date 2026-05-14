@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -96,9 +98,16 @@ public class UtilityBillService {
             throw new CustomException(BillErrorCode.BILL_2005);
         }
 
-        return utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(user.getHouseholdId())
+        List<UtilityBill> bills = utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(user.getHouseholdId());
+        String yearMonth = YearMonth.now().toString();
+
+        Map<Long, Integer> thisMonthAmountByBillId = utilityBillPaymentRepository
+                .findAllByBillInAndYearMonth(bills, yearMonth)
                 .stream()
-                .map(BillResponse::from)
+                .collect(Collectors.toMap(p -> p.getBill().getId(), p -> p.getAmount()));
+
+        return bills.stream()
+                .map(b -> BillResponse.from(b, thisMonthAmountByBillId.get(b.getId())))
                 .toList();
     }
 
