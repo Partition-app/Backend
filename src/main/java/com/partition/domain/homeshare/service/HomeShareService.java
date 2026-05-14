@@ -88,51 +88,6 @@ public class HomeShareService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
-    public LocationConsentResponse getConsent(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
-
-        Household household = getHouseholdByUser(user);
-
-        boolean agreed = consentRepository.findByUserAndHousehold(user, household)
-                .map(LocationSharingConsent::isAgreed)
-                .orElse(false);
-
-        return LocationConsentResponse.builder()
-                .userId(userId)
-                .householdId(household.getId())
-                .agreed(agreed)
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public HomeLocationResponse getHomeLocation(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
-
-        Household household = getHouseholdByUser(user);
-
-        HomeLocation homeLocation = homeLocationRepository.findByHousehold(household)
-                .orElse(null);
-
-        if (homeLocation == null) {
-            return HomeLocationResponse.builder()
-                    .householdId(household.getId())
-                    .lat(0)
-                    .lng(0)
-                    .radius(300)
-                    .build();
-        }
-
-        return HomeLocationResponse.builder()
-                .householdId(household.getId())
-                .lat(homeLocation.getLat().doubleValue())
-                .lng(homeLocation.getLng().doubleValue())
-                .radius(homeLocation.getRadius())
-                .build();
-    }
-
     @Transactional
     public NearHomeEventResponse handleNearHomeEvent(Long userId, String eventType) {
         User user = userRepository.findById(userId)
