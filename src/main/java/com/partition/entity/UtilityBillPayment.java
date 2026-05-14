@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Table(
     name = "utility_bill_payments",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"bill_id", "year_month"})
+    uniqueConstraints = @UniqueConstraint(columnNames = {"bill_id", "pay_year_month"})
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UtilityBillPayment extends BaseEntity {
@@ -25,7 +25,7 @@ public class UtilityBillPayment extends BaseEntity {
     @JoinColumn(name = "bill_id", nullable = false)
     private UtilityBill bill;
 
-    @Column(name = "year_month", nullable = false, length = 7)
+    @Column(name = "pay_year_month", nullable = false, length = 7)
     private String yearMonth;
 
     @Column
