@@ -24,4 +24,8 @@ public interface UtilityBillPaymentRepository extends JpaRepository<UtilityBillP
     List<UtilityBillPayment> findAllByIdInAndHouseholdId(@Param("ids") List<Long> ids, @Param("householdId") Long householdId);
 
     List<UtilityBillPayment> findAllBySettlement(Settlement settlement);
+
+    List<UtilityBillPayment> findAllByBill(UtilityBill bill);
+
+    void deleteAllByBill(UtilityBill bill);
 }
