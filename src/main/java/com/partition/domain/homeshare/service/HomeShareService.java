@@ -4,6 +4,7 @@ import com.partition.domain.alarm.service.FcmService;
 import com.partition.domain.homeshare.dto.response.HomeLocationResponse;
 import com.partition.domain.homeshare.dto.response.LocationConsentResponse;
 import com.partition.domain.homeshare.dto.response.NearHomeEventResponse;
+import com.partition.domain.homeshare.dto.response.RoommateNearHomeResponse;
 import com.partition.domain.homeshare.repository.HomeLocationRepository;
 import com.partition.domain.homeshare.repository.LocationSharingConsentRepository;
 import com.partition.domain.homeshare.repository.NearHomeEventRepository;
@@ -165,6 +166,31 @@ public class HomeShareService {
         }
 
         return NearHomeEventResponse.builder().notifiedUserCount(notifiedCount).build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RoommateNearHomeResponse> getRoommateNearHomeStatus(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
+
+        Household household = getHouseholdByUser(user);
+
+        LocalDateTime cutoff = LocalDateTime.now().minus(NOTIFICATION_COOLDOWN);
+
+        return userRepository.findByHouseholdId(household.getId())
+                .stream()
+                .filter(m -> Boolean.TRUE.equals(m.getIsActive()) && !m.getId().equals(userId))
+                .map(roommate -> {
+                    boolean isNearHome = !nearHomeEventRepository
+                            .findRecentEvents(roommate, household, cutoff)
+                            .isEmpty();
+                    return RoommateNearHomeResponse.builder()
+                            .userId(roommate.getId())
+                            .name(roommate.getName())
+                            .isNearHome(isNearHome)
+                            .build();
+                })
+                .toList();
     }
 
     private Household getHouseholdByUser(User user) {

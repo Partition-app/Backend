@@ -7,6 +7,7 @@ import com.partition.domain.homeshare.dto.request.NearHomeEventRequest;
 import com.partition.domain.homeshare.dto.response.HomeLocationResponse;
 import com.partition.domain.homeshare.dto.response.LocationConsentResponse;
 import com.partition.domain.homeshare.dto.response.NearHomeEventResponse;
+import com.partition.domain.homeshare.dto.response.RoommateNearHomeResponse;
 import com.partition.domain.homeshare.service.HomeShareService;
 import com.partition.global.config.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/households")
@@ -67,6 +70,17 @@ public class HomeShareController {
                 userId, request.getLat(), request.getLng(), request.getRadius());
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "집 위치가 저장되었습니다.", result));
+    }
+
+    @Operation(summary = "룸메이트 집 근처 여부 조회", description = "같은 그룹 룸메이트들의 집 근처 여부를 조회합니다.")
+    @GetMapping("/location-events/near-home")
+    public ResponseEntity<ApiResponse<List<RoommateNearHomeResponse>>> getRoommateNearHomeStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        List<RoommateNearHomeResponse> result = homeShareService.getRoommateNearHomeStatus(userId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "룸메이트 귀가 현황 조회 성공", result));
     }
 
     @Operation(summary = "집 근처 진입 이벤트 전송", description = "집 반경 진입 시 룸메이트에게 FCM 푸시 알림을 보냅니다. 30분 쿨다운 적용.")
