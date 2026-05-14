@@ -332,7 +332,11 @@ public class UtilityBillService {
             throw new CustomException(BillErrorCode.BILL_1009);
         }
 
-        if (request.getAmount() != null && request.getAmount() < 1) {
+        if (Boolean.TRUE.equals(request.getIsFixed())) {
+            if (request.getAmount() == null || request.getAmount() < 1) {
+                throw new CustomException(BillErrorCode.BILL_1006);
+            }
+        } else if (request.getAmount() != null && request.getAmount() < 1) {
             throw new CustomException(BillErrorCode.BILL_1006);
         }
     }
@@ -350,7 +354,11 @@ public class UtilityBillService {
         if (request.getIsFixed() == null) {
             throw new CustomException(BillErrorCode.BILL_6010);
         }
-        if (request.getAmount() != null && request.getAmount() < 1) {
+        if (Boolean.TRUE.equals(request.getIsFixed())) {
+            if (request.getAmount() == null || request.getAmount() < 1) {
+                throw new CustomException(BillErrorCode.BILL_6006);
+            }
+        } else if (request.getAmount() != null && request.getAmount() < 1) {
             throw new CustomException(BillErrorCode.BILL_6006);
         }
     }
