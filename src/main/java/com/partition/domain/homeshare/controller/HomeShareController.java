@@ -22,6 +22,17 @@ public class HomeShareController {
 
     private final HomeShareService homeShareService;
 
+    @Operation(summary = "위치 공유 동의 조회", description = "현재 위치 공유 동의 여부를 조회합니다.")
+    @GetMapping("/location-consent")
+    public ResponseEntity<ApiResponse<LocationConsentResponse>> getConsent(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        LocationConsentResponse result = homeShareService.getConsent(userId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "위치 공유 동의 조회 성공", result));
+    }
+
     @Operation(summary = "위치 공유 동의 저장", description = "귀가 공유 토글 ON/OFF 시 위치 공유 동의 여부를 저장합니다.")
     @PostMapping("/location-consent")
     public ResponseEntity<ApiResponse<LocationConsentResponse>> saveConsent(
@@ -32,6 +43,17 @@ public class HomeShareController {
         LocationConsentResponse result = homeShareService.saveConsent(userId, request.isAgreed());
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "위치 공유 동의가 저장되었습니다.", result));
+    }
+
+    @Operation(summary = "집 위치 조회", description = "가구의 현재 등록된 집 위치를 조회합니다. 미등록 시 404 반환.")
+    @GetMapping("/home-location")
+    public ResponseEntity<ApiResponse<HomeLocationResponse>> getHomeLocation(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long userId = Long.parseLong(userDetails.getUsername());
+        HomeLocationResponse result = homeShareService.getHomeLocation(userId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "집 위치 조회 성공", result));
     }
 
     @Operation(summary = "집 위치 저장", description = "가구의 집 위치(위도/경도/반경)를 저장합니다. 이미 등록된 경우 덮어씁니다.")

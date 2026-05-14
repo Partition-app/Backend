@@ -15,7 +15,8 @@ public enum HouseholdErrorCode implements BaseErrorCode {
     HOUSEHOLD_4001(404, "소속된 그룹이 없습니다."),
     HOUSEHOLD_4002(400, "방장은 그룹을 나갈 수 없습니다. 방장을 위임하거나 그룹을 삭제해주세요."),
     HOUSEHOLD_4003(403, "방장만 수행할 수 있습니다."),
-    HOUSEHOLD_4004(400, "대상 유저가 같은 그룹에 속해 있지 않습니다.");
+    HOUSEHOLD_4004(400, "대상 유저가 같은 그룹에 속해 있지 않습니다."),
+    HOUSEHOLD_4005(404, "등록된 집 위치가 없습니다.");
 
     private final int status;
     private final String message;
