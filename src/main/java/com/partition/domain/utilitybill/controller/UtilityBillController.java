@@ -64,14 +64,14 @@ public class UtilityBillController {
         );
     }
 
-    @Operation(summary = "공과금 정산 상태 토글", description = "공과금 기록의 정산 상태를 UNSETTLED/SETTLED 간 토글합니다. REQUESTED 상태는 변경 불가.")
-    @PatchMapping("/{billId}/settlement-status")
+    @Operation(summary = "공과금 납부 기록 정산 상태 토글", description = "납부 기록의 정산 상태를 UNSETTLED/SETTLED 간 토글합니다. REQUESTED 상태는 변경 불가.")
+    @PatchMapping("/payments/{paymentId}/settlement-status")
     public ResponseEntity<ApiResponse<ToggleBillSettlementStatusResponse>> toggleSettlementStatus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long billId
+            @PathVariable Long paymentId
     ) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        ToggleBillSettlementStatusResponse result = utilityBillService.toggleSettlementStatus(userId, billId);
+        ToggleBillSettlementStatusResponse result = utilityBillService.togglePaymentSettlementStatus(userId, paymentId);
 
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("200", "정산 상태 변경 성공", result)

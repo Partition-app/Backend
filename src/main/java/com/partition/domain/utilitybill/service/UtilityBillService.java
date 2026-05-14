@@ -235,29 +235,30 @@ public class UtilityBillService {
     }
 
     @Transactional
-    public ToggleBillSettlementStatusResponse toggleSettlementStatus(Long userId, Long billId) {
-        UtilityBill bill = utilityBillRepository.findById(billId)
+    public ToggleBillSettlementStatusResponse togglePaymentSettlementStatus(Long userId, Long paymentId) {
+        UtilityBillPayment payment = utilityBillPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_5001));
 
         User caller = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
 
         if (caller.getHouseholdId() == null ||
-                !caller.getHouseholdId().equals(bill.getHousehold().getId())) {
+                !caller.getHouseholdId().equals(payment.getBill().getHousehold().getId())) {
             throw new CustomException(BillErrorCode.BILL_5003);
         }
 
-        if (bill.getStatus() == BillStatus.REQUESTED) {
+        if (payment.getStatus() == BillStatus.REQUESTED) {
             throw new CustomException(BillErrorCode.BILL_5002);
         }
 
-        bill.toggleSettlementStatus();
+        payment.toggleSettlementStatus();
 
         return ToggleBillSettlementStatusResponse.builder()
-                .billId(bill.getId())
-                .utilityType(bill.getBillType().name())
-                .utilityTypeName(bill.getBillType().getLabel())
-                .status(bill.getStatus().name())
+                .paymentId(payment.getId())
+                .billId(payment.getBill().getId())
+                .utilityType(payment.getBill().getBillType().name())
+                .utilityTypeName(payment.getBill().getBillType().getLabel())
+                .status(payment.getStatus().name())
                 .build();
     }
 
