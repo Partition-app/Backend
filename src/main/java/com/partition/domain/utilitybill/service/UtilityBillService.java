@@ -3,11 +3,13 @@ package com.partition.domain.utilitybill.service;
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
+import com.partition.domain.utilitybill.dto.request.UpdatePaymentAmountRequest;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
 import com.partition.domain.utilitybill.dto.response.ToggleBillSettlementStatusResponse;
 import com.partition.domain.utilitybill.dto.response.UpdateBillResponse;
+import com.partition.domain.utilitybill.dto.response.UpdatePaymentAmountResponse;
 import com.partition.domain.utilitybill.exception.BillErrorCode;
 import com.partition.domain.utilitybill.repository.UtilityBillPaymentRepository;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -227,6 +230,51 @@ public class UtilityBillService {
                 .utilityType(bill.getBillType().name())
                 .utilityTypeName(bill.getBillType().getLabel())
                 .status(bill.getStatus().name())
+                .build();
+    }
+
+    @Transactional
+    public UpdatePaymentAmountResponse updatePaymentAmount(Long userId, Long billId, String yearMonth, UpdatePaymentAmountRequest request) {
+        try {
+            YearMonth.parse(yearMonth);
+        } catch (DateTimeParseException e) {
+            throw new CustomException(BillErrorCode.BILL_8004);
+        }
+
+        if (request.getThisMonthAmount() == null) {
+            throw new CustomException(BillErrorCode.BILL_8005);
+        }
+        if (request.getThisMonthAmount() < 1) {
+            throw new CustomException(BillErrorCode.BILL_8006);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (user.getHouseholdId() == null) {
+            throw new CustomException(BillErrorCode.BILL_8007);
+        }
+
+        UtilityBill bill = utilityBillRepository.findById(billId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_8001));
+
+        if (!user.getHouseholdId().equals(bill.getHousehold().getId())) {
+            throw new CustomException(BillErrorCode.BILL_8007);
+        }
+
+        if (bill.isFixed()) {
+            throw new CustomException(BillErrorCode.BILL_8002);
+        }
+
+        UtilityBillPayment payment = utilityBillPaymentRepository.findByBillAndYearMonth(bill, yearMonth)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_8003));
+
+        payment.updateAmount(request.getThisMonthAmount());
+
+        return UpdatePaymentAmountResponse.builder()
+                .billId(bill.getId())
+                .yearMonth(yearMonth)
+                .thisMonthAmount(payment.getAmount())
                 .build();
     }
 
