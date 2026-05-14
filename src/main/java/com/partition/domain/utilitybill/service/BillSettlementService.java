@@ -70,6 +70,9 @@ public class BillSettlementService {
         if (payments.stream().anyMatch(p -> p.getStatus() == BillStatus.SETTLED)) {
             throw new CustomException(BillErrorCode.BILL_3004);
         }
+        if (payments.stream().anyMatch(p -> p.getAmount() == null)) {
+            throw new CustomException(BillErrorCode.BILL_3007);
+        }
 
         List<User> members = userRepository.findAllById(request.getMemberIds());
         Set<Long> householdMemberIds = userRepository.findByHouseholdId(householdId)
