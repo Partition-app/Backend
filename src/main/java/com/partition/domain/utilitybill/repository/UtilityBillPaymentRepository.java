@@ -1,5 +1,6 @@
 package com.partition.domain.utilitybill.repository;
 
+import com.partition.entity.Settlement;
 import com.partition.entity.UtilityBill;
 import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.enums.BillStatus;
@@ -21,4 +22,6 @@ public interface UtilityBillPaymentRepository extends JpaRepository<UtilityBillP
 
     @Query("SELECT p FROM UtilityBillPayment p WHERE p.id IN :ids AND p.bill.household.id = :householdId")
     List<UtilityBillPayment> findAllByIdInAndHouseholdId(@Param("ids") List<Long> ids, @Param("householdId") Long householdId);
+
+    List<UtilityBillPayment> findAllBySettlement(Settlement settlement);
 }
