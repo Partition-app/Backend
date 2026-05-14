@@ -30,7 +30,10 @@ public class UtilityBill extends BaseEntity {
     @Column(name = "pay_day", nullable = false)
     private Integer payDay;
 
-    @Column(nullable = false)
+    @Column(name = "is_fixed", nullable = false)
+    private boolean isFixed;
+
+    @Column
     private Integer amount;
 
     @Enumerated(EnumType.STRING)
@@ -45,10 +48,11 @@ public class UtilityBill extends BaseEntity {
     private Settlement settlement;
 
     @Builder
-    public UtilityBill(Household household, BillCategoryType billType, Integer payDay, Integer amount, String note) {
+    public UtilityBill(Household household, BillCategoryType billType, Integer payDay, boolean isFixed, Integer amount, String note) {
         this.household = household;
         this.billType = billType;
         this.payDay = payDay;
+        this.isFixed = isFixed;
         this.amount = amount;
         this.status = BillStatus.UNSETTLED;
         this.note = note;
@@ -64,9 +68,10 @@ public class UtilityBill extends BaseEntity {
         this.settlement = settlement;
     }
 
-    public void update(BillCategoryType billType, Integer payDay, Integer amount, String note) {
+    public void update(BillCategoryType billType, Integer payDay, boolean isFixed, Integer amount, String note) {
         this.billType = billType;
         this.payDay = payDay;
+        this.isFixed = isFixed;
         this.amount = amount;
         this.note = note;
     }

@@ -9,10 +9,12 @@ import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
 import com.partition.domain.utilitybill.dto.response.ToggleBillSettlementStatusResponse;
 import com.partition.domain.utilitybill.dto.response.UpdateBillResponse;
 import com.partition.domain.utilitybill.exception.BillErrorCode;
+import com.partition.domain.utilitybill.repository.UtilityBillPaymentRepository;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.Household;
 import com.partition.entity.UtilityBill;
+import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.User;
 import com.partition.entity.enums.BillCategoryType;
 import com.partition.entity.enums.BillStatus;
@@ -21,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @Service
@@ -30,6 +33,7 @@ public class UtilityBillService {
     private final UserRepository userRepository;
     private final HouseholdRepository householdRepository;
     private final UtilityBillRepository utilityBillRepository;
+    private final UtilityBillPaymentRepository utilityBillPaymentRepository;
 
     @Transactional
     public CreateBillResponse createBill(Long userId, CreateBillRequest request) {
@@ -46,14 +50,26 @@ public class UtilityBillService {
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9002));
 
         BillCategoryType billType = parseBillType(request.getUtilityType());
+        boolean isFixed = request.getIsFixed();
+        Integer fixedAmount = isFixed ? request.getAmount() : null;
 
         UtilityBill bill = utilityBillRepository.save(
                 UtilityBill.builder()
                         .household(household)
                         .billType(billType)
                         .payDay(request.getPayDay())
-                        .amount(request.getAmount())
+                        .isFixed(isFixed)
+                        .amount(fixedAmount)
                         .note(request.getNote())
+                        .build()
+        );
+
+        Integer thisMonthAmount = isFixed ? fixedAmount : request.getAmount();
+        UtilityBillPayment payment = utilityBillPaymentRepository.save(
+                UtilityBillPayment.builder()
+                        .bill(bill)
+                        .yearMonth(YearMonth.now().toString())
+                        .amount(thisMonthAmount)
                         .build()
         );
 
@@ -62,7 +78,9 @@ public class UtilityBillService {
                 .utilityType(bill.getBillType().name())
                 .utilityTypeName(bill.getBillType().getLabel())
                 .payDay(bill.getPayDay())
+                .isFixed(bill.isFixed())
                 .amount(bill.getAmount())
+                .thisMonthAmount(payment.getAmount())
                 .note(bill.getNote())
                 .status(bill.getStatus().name())
                 .createdAt(bill.getCreatedAt())
@@ -140,7 +158,9 @@ public class UtilityBillService {
         validateUpdateRequest(request);
 
         BillCategoryType billType = parseBillType6(request.getUtilityType());
-        bill.update(billType, request.getPayDay(), request.getAmount(), request.getNote());
+        boolean isFixed = request.getIsFixed() != null ? request.getIsFixed() : bill.isFixed();
+        Integer fixedAmount = isFixed ? request.getAmount() : null;
+        bill.update(billType, request.getPayDay(), isFixed, fixedAmount, request.getNote());
 
         return UpdateBillResponse.builder()
                 .billId(bill.getId())
@@ -215,11 +235,11 @@ public class UtilityBillService {
             throw new CustomException(BillErrorCode.BILL_1007);
         }
 
-        if (request.getAmount() == null) {
-            throw new CustomException(BillErrorCode.BILL_1005);
+        if (request.getIsFixed() == null) {
+            throw new CustomException(BillErrorCode.BILL_1009);
         }
 
-        if (request.getAmount() < 1) {
+        if (request.getAmount() != null && request.getAmount() < 1) {
             throw new CustomException(BillErrorCode.BILL_1006);
         }
     }
