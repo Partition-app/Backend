@@ -19,9 +19,10 @@ public class BillSettlementListResponse {
     @Getter
     @Builder
     public static class BillItem {
+        private Long paymentId;
         private Long billId;
         private String utilityTypeName;
-        private Integer payDay;
+        private String dueDate;
         private Integer amount;
         private String note;
     }

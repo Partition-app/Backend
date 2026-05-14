@@ -29,6 +29,7 @@ public class CreateBillSettlementResponse {
     @Getter
     @Builder
     public static class BillItemResponse {
+        private Long paymentId;
         private Long billId;
         private String utilityTypeName;
         private Integer amount;

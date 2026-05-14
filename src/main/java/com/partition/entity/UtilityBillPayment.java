@@ -1,5 +1,6 @@
 package com.partition.entity;
 
+import com.partition.entity.enums.BillStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -30,14 +31,32 @@ public class UtilityBillPayment extends BaseEntity {
     @Column
     private Integer amount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "varchar(20)")
+    private BillStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "settlement_id")
+    private Settlement settlement;
+
     @Builder
     public UtilityBillPayment(UtilityBill bill, String yearMonth, Integer amount) {
         this.bill = bill;
         this.yearMonth = yearMonth;
         this.amount = amount;
+        this.status = BillStatus.UNSETTLED;
     }
 
     public void updateAmount(Integer amount) {
         this.amount = amount;
+    }
+
+    public void requestSettlement(Settlement settlement) {
+        this.status = BillStatus.REQUESTED;
+        this.settlement = settlement;
+    }
+
+    public void settle() {
+        this.status = BillStatus.SETTLED;
     }
 }

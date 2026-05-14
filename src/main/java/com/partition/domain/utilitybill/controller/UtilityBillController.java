@@ -102,13 +102,15 @@ public class UtilityBillController {
                 .body(ApiResponse.onSuccess("201", "공과금 등록 성공", result));
     }
 
-    @Operation(summary = "정산 대상 공과금 목록 조회", description = "미정산 공과금 목록과 인당 금액을 조회합니다.")
+    @Operation(summary = "정산 대상 공과금 목록 조회", description = "기간 내 미정산 납부 기록과 인당 금액을 조회합니다.")
     @GetMapping("/settlement/list")
     public ResponseEntity<ApiResponse<BillSettlementListResponse>> getSettlementBills(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
     ) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        BillSettlementListResponse result = utilityBillService.getSettlementBills(userId);
+        BillSettlementListResponse result = utilityBillService.getSettlementBills(userId, startDate, endDate);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "정산 대상 공과금 목록 조회 성공", result));
     }

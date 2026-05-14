@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -104,18 +105,31 @@ public class UtilityBillService {
         List<UtilityBill> bills = utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(user.getHouseholdId());
         String yearMonth = YearMonth.now().toString();
 
-        Map<Long, Integer> thisMonthAmountByBillId = utilityBillPaymentRepository
-                .findAllByBillInAndYearMonth(bills, yearMonth)
-                .stream()
-                .collect(Collectors.toMap(p -> p.getBill().getId(), p -> p.getAmount()));
+        Map<Long, UtilityBillPayment> paymentByBillId = new java.util.HashMap<>();
+        utilityBillPaymentRepository.findAllByBillInAndYearMonth(bills, yearMonth)
+                .forEach(p -> paymentByBillId.put(p.getBill().getId(), p));
 
         return bills.stream()
-                .map(b -> BillResponse.from(b, thisMonthAmountByBillId.get(b.getId())))
+                .map(b -> BillResponse.from(b, paymentByBillId.get(b.getId())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public BillSettlementListResponse getSettlementBills(Long userId) {
+    public BillSettlementListResponse getSettlementBills(Long userId, String startDate, String endDate) {
+        if (startDate == null || startDate.isBlank()) throw new CustomException(BillErrorCode.BILL_2001);
+        if (endDate == null || endDate.isBlank()) throw new CustomException(BillErrorCode.BILL_2002);
+
+        LocalDate start;
+        LocalDate end;
+        try {
+            start = LocalDate.parse(startDate);
+            end = LocalDate.parse(endDate);
+        } catch (DateTimeParseException e) {
+            throw new CustomException(BillErrorCode.BILL_2003);
+        }
+
+        if (end.isBefore(start)) throw new CustomException(BillErrorCode.BILL_2004);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
 
@@ -125,28 +139,42 @@ public class UtilityBillService {
 
         int memberCount = userRepository.findByHouseholdId(user.getHouseholdId()).size();
 
-        List<UtilityBill> bills = utilityBillRepository
-                .findAllByHouseholdIdAndStatus(user.getHouseholdId(), BillStatus.UNSETTLED);
+        List<BillSettlementListResponse.BillItem> billItems = utilityBillPaymentRepository
+                .findAllByHouseholdIdAndStatus(user.getHouseholdId(), BillStatus.UNSETTLED)
+                .stream()
+                .filter(p -> p.getAmount() != null)
+                .filter(p -> {
+                    YearMonth ym = YearMonth.parse(p.getYearMonth());
+                    int day = Math.min(p.getBill().getPayDay(), ym.lengthOfMonth());
+                    LocalDate dueDate = ym.atDay(day);
+                    return !dueDate.isBefore(start) && !dueDate.isAfter(end);
+                })
+                .map(p -> {
+                    YearMonth ym = YearMonth.parse(p.getYearMonth());
+                    int day = Math.min(p.getBill().getPayDay(), ym.lengthOfMonth());
+                    String dueDate = ym.atDay(day).toString();
+                    return BillSettlementListResponse.BillItem.builder()
+                            .paymentId(p.getId())
+                            .billId(p.getBill().getId())
+                            .utilityTypeName(p.getBill().getBillType().getLabel())
+                            .dueDate(dueDate)
+                            .amount(p.getAmount())
+                            .note(p.getBill().getNote())
+                            .build();
+                })
+                .toList();
 
-        int totalAmount = bills.stream().mapToInt(UtilityBill::getAmount).sum();
+        int totalAmount = billItems.stream().mapToInt(BillSettlementListResponse.BillItem::getAmount).sum();
         int amountPerMember = memberCount > 0 ? totalAmount / memberCount : 0;
         int remainder = memberCount > 0 ? totalAmount % memberCount : 0;
 
         return BillSettlementListResponse.builder()
-                .totalCount(bills.size())
+                .totalCount(billItems.size())
                 .totalAmount(totalAmount)
                 .memberCount(memberCount)
                 .amountPerMember(amountPerMember)
                 .remainder(remainder)
-                .bills(bills.stream()
-                        .map(b -> BillSettlementListResponse.BillItem.builder()
-                                .billId(b.getId())
-                                .utilityTypeName(b.getBillType().getLabel())
-                                .payDay(b.getPayDay())
-                                .amount(b.getAmount())
-                                .note(b.getNote())
-                                .build())
-                        .toList())
+                .bills(billItems)
                 .build();
     }
 

@@ -9,6 +9,6 @@ import java.util.List;
 @NoArgsConstructor
 public class CreateBillSettlementRequest {
 
-    private List<Long> billIds;
+    private List<Long> paymentIds;
     private List<Long> memberIds;
 }
