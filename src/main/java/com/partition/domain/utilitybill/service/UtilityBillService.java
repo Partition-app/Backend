@@ -158,7 +158,7 @@ public class UtilityBillService {
         validateUpdateRequest(request);
 
         BillCategoryType billType = parseBillType6(request.getUtilityType());
-        boolean isFixed = request.getIsFixed() != null ? request.getIsFixed() : bill.isFixed();
+        boolean isFixed = request.getIsFixed();
         Integer fixedAmount = isFixed ? request.getAmount() : null;
         bill.update(billType, request.getPayDay(), isFixed, fixedAmount, request.getNote());
 
@@ -167,6 +167,7 @@ public class UtilityBillService {
                 .utilityType(bill.getBillType().name())
                 .utilityTypeName(bill.getBillType().getLabel())
                 .payDay(bill.getPayDay())
+                .isFixed(bill.isFixed())
                 .amount(bill.getAmount())
                 .note(bill.getNote())
                 .status(bill.getStatus().name())
@@ -254,10 +255,10 @@ public class UtilityBillService {
         if (request.getPayDay() < 1 || request.getPayDay() > 31) {
             throw new CustomException(BillErrorCode.BILL_6004);
         }
-        if (request.getAmount() == null) {
-            throw new CustomException(BillErrorCode.BILL_6005);
+        if (request.getIsFixed() == null) {
+            throw new CustomException(BillErrorCode.BILL_6010);
         }
-        if (request.getAmount() < 1) {
+        if (request.getAmount() != null && request.getAmount() < 1) {
             throw new CustomException(BillErrorCode.BILL_6006);
         }
     }
