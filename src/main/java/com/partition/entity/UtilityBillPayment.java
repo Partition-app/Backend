@@ -66,6 +66,8 @@ public class UtilityBillPayment extends BaseEntity {
         } else if (this.status == BillStatus.SETTLED) {
             this.status = BillStatus.UNSETTLED;
             this.settlement = null;
+        } else {
+            throw new IllegalStateException("Cannot toggle settlement when status is " + this.status);
         }
     }
 }
