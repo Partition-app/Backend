@@ -227,10 +227,16 @@ public class UtilityBillService {
             throw new CustomException(BillErrorCode.BILL_7003);
         }
 
-        if (bill.getStatus() == BillStatus.SETTLED) {
+        List<UtilityBillPayment> payments = utilityBillPaymentRepository.findAllByBill(bill);
+
+        if (payments.stream().anyMatch(p -> p.getStatus() == BillStatus.SETTLED)) {
             throw new CustomException(BillErrorCode.BILL_7002);
         }
+        if (payments.stream().anyMatch(p -> p.getStatus() == BillStatus.REQUESTED)) {
+            throw new CustomException(BillErrorCode.BILL_7004);
+        }
 
+        utilityBillPaymentRepository.deleteAllByBill(bill);
         utilityBillRepository.delete(bill);
     }
 
