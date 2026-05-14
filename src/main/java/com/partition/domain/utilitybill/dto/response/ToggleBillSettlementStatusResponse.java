@@ -7,6 +7,7 @@ import lombok.Getter;
 @Builder
 public class ToggleBillSettlementStatusResponse {
 
+    private Long paymentId;
     private Long billId;
     private String utilityType;
     private String utilityTypeName;

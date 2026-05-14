@@ -9,6 +9,7 @@ public class UpdateBillRequest {
 
     private String utilityType;
     private Integer payDay;
+    private Boolean isFixed;
     private Integer amount;
     private String note;
 }

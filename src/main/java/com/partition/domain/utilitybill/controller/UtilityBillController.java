@@ -4,6 +4,7 @@ import com.partition.domain.common.dto.response.ApiResponse;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.CreateBillSettlementRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
+import com.partition.domain.utilitybill.dto.request.UpdatePaymentAmountRequest;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementDetailResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
@@ -13,6 +14,7 @@ import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillSettlementResponse;
 import com.partition.domain.utilitybill.dto.response.ToggleBillSettlementStatusResponse;
 import com.partition.domain.utilitybill.dto.response.UpdateBillResponse;
+import com.partition.domain.utilitybill.dto.response.UpdatePaymentAmountResponse;
 import com.partition.domain.utilitybill.service.BillSettlementService;
 import com.partition.domain.utilitybill.service.UtilityBillService;
 import com.partition.global.config.security.CustomUserDetails;
@@ -62,14 +64,14 @@ public class UtilityBillController {
         );
     }
 
-    @Operation(summary = "공과금 정산 상태 토글", description = "공과금 기록의 정산 상태를 UNSETTLED/SETTLED 간 토글합니다. REQUESTED 상태는 변경 불가.")
-    @PatchMapping("/{billId}/settlement-status")
+    @Operation(summary = "공과금 납부 기록 정산 상태 토글", description = "납부 기록의 정산 상태를 UNSETTLED/SETTLED 간 토글합니다. REQUESTED 상태는 변경 불가.")
+    @PatchMapping("/payments/{paymentId}/settlement-status")
     public ResponseEntity<ApiResponse<ToggleBillSettlementStatusResponse>> toggleSettlementStatus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long billId
+            @PathVariable Long paymentId
     ) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        ToggleBillSettlementStatusResponse result = utilityBillService.toggleSettlementStatus(userId, billId);
+        ToggleBillSettlementStatusResponse result = utilityBillService.togglePaymentSettlementStatus(userId, paymentId);
 
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("200", "정산 상태 변경 성공", result)
@@ -100,13 +102,15 @@ public class UtilityBillController {
                 .body(ApiResponse.onSuccess("201", "공과금 등록 성공", result));
     }
 
-    @Operation(summary = "정산 대상 공과금 목록 조회", description = "미정산 공과금 목록과 인당 금액을 조회합니다.")
+    @Operation(summary = "정산 대상 공과금 목록 조회", description = "기간 내 미정산 납부 기록과 인당 금액을 조회합니다.")
     @GetMapping("/settlement/list")
     public ResponseEntity<ApiResponse<BillSettlementListResponse>> getSettlementBills(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
     ) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        BillSettlementListResponse result = utilityBillService.getSettlementBills(userId);
+        BillSettlementListResponse result = utilityBillService.getSettlementBills(userId, startDate, endDate);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "정산 대상 공과금 목록 조회 성공", result));
     }
@@ -157,5 +161,19 @@ public class UtilityBillController {
         BillSettlementDetailResponse result = billSettlementService.getSettlementDetail(userId, settlementId);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 정산 상세 조회 성공", result));
+    }
+
+    @Operation(summary = "변동 공과금 금액 입력", description = "변동 공과금의 특정 월 금액을 입력합니다.")
+    @PatchMapping("/{billId}/payments/{yearMonth}/amount")
+    public ResponseEntity<ApiResponse<UpdatePaymentAmountResponse>> updatePaymentAmount(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long billId,
+            @PathVariable String yearMonth,
+            @RequestBody UpdatePaymentAmountRequest request
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        UpdatePaymentAmountResponse result = utilityBillService.updatePaymentAmount(userId, billId, yearMonth, request);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "금액 입력 성공", result));
     }
 }

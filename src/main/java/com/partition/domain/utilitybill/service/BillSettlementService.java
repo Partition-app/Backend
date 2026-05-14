@@ -10,15 +10,16 @@ import com.partition.domain.utilitybill.dto.response.BillSettlementRequestedList
 import com.partition.domain.utilitybill.dto.response.ConfirmBillSettlementResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillSettlementResponse;
 import com.partition.domain.utilitybill.exception.BillErrorCode;
+import com.partition.domain.utilitybill.repository.UtilityBillPaymentRepository;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
 import com.partition.entity.Settlement;
 import com.partition.entity.SettlementMember;
 import com.partition.entity.User;
 import com.partition.entity.UtilityBill;
+import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.enums.AlarmType;
 import com.partition.entity.enums.BillStatus;
 
-import java.util.stream.Collectors;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,13 +36,14 @@ public class BillSettlementService {
 
     private final UserRepository userRepository;
     private final UtilityBillRepository utilityBillRepository;
+    private final UtilityBillPaymentRepository utilityBillPaymentRepository;
     private final SettlementRepository settlementRepository;
     private final SettlementMemberRepository settlementMemberRepository;
     private final AlarmService alarmService;
 
     @Transactional
     public CreateBillSettlementResponse createSettlement(Long userId, CreateBillSettlementRequest request) {
-        if (request.getBillIds() == null || request.getBillIds().isEmpty()) {
+        if (request.getPaymentIds() == null || request.getPaymentIds().isEmpty()) {
             throw new CustomException(BillErrorCode.BILL_3001);
         }
 
@@ -56,37 +58,38 @@ public class BillSettlementService {
         }
         Long householdId = requestUser.getHouseholdId();
 
-        List<UtilityBill> bills = utilityBillRepository.findAllById(request.getBillIds());
-        if (bills.size() != request.getBillIds().size()) {
+        List<UtilityBillPayment> payments = utilityBillPaymentRepository
+                .findAllByIdInAndHouseholdId(request.getPaymentIds(), householdId);
+        if (payments.size() != request.getPaymentIds().size()) {
             throw new CustomException(BillErrorCode.BILL_3002);
         }
 
-        boolean hasRequested = bills.stream().anyMatch(b -> b.getStatus() == BillStatus.REQUESTED);
-        if (hasRequested) {
+        if (payments.stream().anyMatch(p -> p.getStatus() == BillStatus.REQUESTED)) {
             throw new CustomException(BillErrorCode.BILL_3003);
         }
-
-        boolean hasSettled = bills.stream().anyMatch(b -> b.getStatus() == BillStatus.SETTLED);
-        if (hasSettled) {
+        if (payments.stream().anyMatch(p -> p.getStatus() == BillStatus.SETTLED)) {
             throw new CustomException(BillErrorCode.BILL_3004);
+        }
+        if (payments.stream().anyMatch(p -> p.getAmount() == null)) {
+            throw new CustomException(BillErrorCode.BILL_3007);
         }
 
         List<User> members = userRepository.findAllById(request.getMemberIds());
         Set<Long> householdMemberIds = userRepository.findByHouseholdId(householdId)
                 .stream().map(User::getId).collect(Collectors.toSet());
-        boolean hasNonMember = members.stream().anyMatch(m -> !householdMemberIds.contains(m.getId()));
-        if (hasNonMember || members.size() != request.getMemberIds().size()) {
+        if (members.size() != request.getMemberIds().size() ||
+                members.stream().anyMatch(m -> !householdMemberIds.contains(m.getId()))) {
             throw new CustomException(BillErrorCode.BILL_3005);
         }
 
-        int totalAmount = bills.stream().mapToInt(UtilityBill::getAmount).sum();
+        int totalAmount = payments.stream().mapToInt(UtilityBillPayment::getAmount).sum();
         int memberCount = members.size();
         int amountPerMember = memberCount > 0 ? totalAmount / memberCount : 0;
         int remainder = memberCount > 0 ? totalAmount % memberCount : 0;
 
         Settlement settlement = settlementRepository.save(
                 Settlement.builder()
-                        .household(bills.get(0).getHousehold())
+                        .household(payments.get(0).getBill().getHousehold())
                         .totalAmount(totalAmount)
                         .memberCount(memberCount)
                         .amountPerMember(amountPerMember)
@@ -105,7 +108,11 @@ public class BillSettlementService {
             ));
         }
 
-        bills.forEach(bill -> bill.requestSettlement(settlement));
+        // payment 상태 업데이트 + 기존 bill 상태도 동기화 (confirmSettlement 호환)
+        payments.forEach(p -> {
+            p.requestSettlement(settlement);
+            p.getBill().requestSettlement(settlement);
+        });
 
         alarmService.createSettlementAlarms(savedMembers, settlement.getId(), AlarmType.BILL_SETTLEMENT_REQUESTED);
 
@@ -122,11 +129,12 @@ public class BillSettlementService {
                                 .amount(sm.getAmount())
                                 .build())
                         .toList())
-                .items(bills.stream()
-                        .map(b -> CreateBillSettlementResponse.BillItemResponse.builder()
-                                .billId(b.getId())
-                                .utilityTypeName(b.getBillType().getLabel())
-                                .amount(b.getAmount())
+                .items(payments.stream()
+                        .map(p -> CreateBillSettlementResponse.BillItemResponse.builder()
+                                .paymentId(p.getId())
+                                .billId(p.getBill().getId())
+                                .utilityTypeName(p.getBill().getBillType().getLabel())
+                                .amount(p.getAmount())
                                 .build())
                         .toList())
                 .build();
@@ -147,14 +155,17 @@ public class BillSettlementService {
             throw new CustomException(BillErrorCode.BILL_4002);
         }
 
-        List<UtilityBill> bills = utilityBillRepository.findAllBySettlementId(settlementId);
-        boolean hasNonRequested = bills.stream().anyMatch(b -> b.getStatus() != BillStatus.REQUESTED);
+        List<UtilityBillPayment> payments = utilityBillPaymentRepository.findAllBySettlement(settlement);
+        boolean hasNonRequested = payments.stream().anyMatch(p -> p.getStatus() != BillStatus.REQUESTED);
         if (hasNonRequested) {
             throw new CustomException(BillErrorCode.BILL_4003);
         }
 
         settlement.confirm();
-        bills.forEach(bill -> bill.settle(settlement));
+        payments.forEach(p -> {
+            p.settle();
+            p.getBill().settle(settlement);
+        });
 
         List<SettlementMember> members = settlementMemberRepository.findAllBySettlementId(settlementId);
 
@@ -173,11 +184,11 @@ public class BillSettlementService {
                                 .amount(sm.getAmount())
                                 .build())
                         .toList())
-                .items(bills.stream()
-                        .map(b -> ConfirmBillSettlementResponse.BillItemResponse.builder()
-                                .billId(b.getId())
-                                .utilityTypeName(b.getBillType().getLabel())
-                                .amount(b.getAmount())
+                .items(payments.stream()
+                        .map(p -> ConfirmBillSettlementResponse.BillItemResponse.builder()
+                                .billId(p.getBill().getId())
+                                .utilityTypeName(p.getBill().getBillType().getLabel())
+                                .amount(p.getAmount())
                                 .build())
                         .toList())
                 .build();
@@ -226,7 +237,7 @@ public class BillSettlementService {
         }
 
         List<SettlementMember> members = settlementMemberRepository.findAllBySettlementId(settlementId);
-        List<UtilityBill> bills = utilityBillRepository.findAllBySettlementId(settlementId);
+        List<UtilityBillPayment> payments = utilityBillPaymentRepository.findAllBySettlement(settlement);
 
         return BillSettlementDetailResponse.builder()
                 .settlementId(settlement.getId())
@@ -242,12 +253,12 @@ public class BillSettlementService {
                                 .amount(sm.getAmount())
                                 .build())
                         .toList())
-                .bills(bills.stream()
-                        .map(b -> BillSettlementDetailResponse.BillItem.builder()
-                                .billId(b.getId())
-                                .utilityTypeName(b.getBillType().getLabel())
-                                .payDay(b.getPayDay())
-                                .amount(b.getAmount())
+                .bills(payments.stream()
+                        .map(p -> BillSettlementDetailResponse.BillItem.builder()
+                                .billId(p.getBill().getId())
+                                .utilityTypeName(p.getBill().getBillType().getLabel())
+                                .payDay(p.getBill().getPayDay())
+                                .amount(p.getAmount())
                                 .build())
                         .toList())
                 .build();
