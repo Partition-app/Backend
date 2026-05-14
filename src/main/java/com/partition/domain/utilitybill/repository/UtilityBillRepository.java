@@ -19,4 +19,6 @@ public interface UtilityBillRepository extends JpaRepository<UtilityBill, Long> 
     List<UtilityBill> findAllBySettlementId(Long settlementId);
 
     List<UtilityBill> findAllByHouseholdIdAndStatus(Long householdId, BillStatus status);
+
+    List<UtilityBill> findAllByIsFixedFalseAndPayDay(int payDay);
 }
