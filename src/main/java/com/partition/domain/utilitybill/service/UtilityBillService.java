@@ -4,6 +4,7 @@ import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdatePaymentAmountRequest;
+import com.partition.domain.utilitybill.dto.response.BillPaymentHistoryResponse;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
@@ -238,6 +239,23 @@ public class UtilityBillService {
 
         utilityBillPaymentRepository.deleteAllByBill(bill);
         utilityBillRepository.delete(bill);
+    }
+
+    @Transactional(readOnly = true)
+    public BillPaymentHistoryResponse getBillPayments(Long userId, Long billId) {
+        UtilityBill bill = utilityBillRepository.findById(billId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_7001));
+
+        User caller = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (caller.getHouseholdId() == null ||
+                !caller.getHouseholdId().equals(bill.getHousehold().getId())) {
+            throw new CustomException(BillErrorCode.BILL_7003);
+        }
+
+        List<UtilityBillPayment> payments = utilityBillPaymentRepository.findAllByBill(bill);
+        return BillPaymentHistoryResponse.of(bill, payments);
     }
 
     @Transactional

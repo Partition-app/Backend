@@ -5,6 +5,7 @@ import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.CreateBillSettlementRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdatePaymentAmountRequest;
+import com.partition.domain.utilitybill.dto.response.BillPaymentHistoryResponse;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementDetailResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
@@ -161,6 +162,18 @@ public class UtilityBillController {
         BillSettlementDetailResponse result = billSettlementService.getSettlementDetail(userId, settlementId);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 정산 상세 조회 성공", result));
+    }
+
+    @Operation(summary = "공과금 납부 기록 조회", description = "특정 공과금의 월별 납부 기록 목록을 조회합니다.")
+    @GetMapping("/{billId}/payments")
+    public ResponseEntity<ApiResponse<BillPaymentHistoryResponse>> getBillPayments(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long billId
+    ) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        BillPaymentHistoryResponse result = utilityBillService.getBillPayments(userId, billId);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 납부 기록 조회 성공", result));
     }
 
     @Operation(summary = "변동 공과금 금액 입력", description = "변동 공과금의 특정 월 금액을 입력합니다.")
