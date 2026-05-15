@@ -32,8 +32,7 @@ public class UtilityBillScheduler {
     private final FcmService fcmService;
 
     // 매월 1일 00:00 — 모든 bill에 대해 당월 payment 생성
-    // @Scheduled(cron = "0 0 0 1 * *")
-    @Scheduled(cron = "0 0 9-23 * * *")
+    @Scheduled(cron = "0 0 0 1 * *")
     @Transactional
     public void createMonthlyPayments() {
         String yearMonth = YearMonth.now().toString();
