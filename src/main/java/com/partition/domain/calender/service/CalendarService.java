@@ -6,11 +6,13 @@ import com.partition.domain.chore.repository.ChoreRepository;
 import com.partition.domain.schedule.repository.ScheduleRepository;
 import com.partition.domain.user.exception.UserErrorCode;
 import com.partition.domain.user.repository.UserRepository;
+import com.partition.domain.utilitybill.repository.UtilityBillPaymentRepository;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
 import com.partition.entity.Chore;
 import com.partition.entity.Schedule;
 import com.partition.entity.User;
 import com.partition.entity.UtilityBill;
+import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.enums.BillStatus;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,6 +33,7 @@ public class CalendarService {
     private final ScheduleRepository scheduleRepository;
     private final ChoreRepository choreRepository;
     private final UtilityBillRepository utilityBillRepository;
+    private final UtilityBillPaymentRepository utilityBillPaymentRepository;
 
     // 월간 캘린더 조회
     @Transactional(readOnly = true)
@@ -109,16 +113,27 @@ public class CalendarService {
 
         // 해당 날짜의 공과금 조회 (payDay 기준, 월말 처리 포함)
         int daysInMonth = date.lengthOfMonth();
-        List<CalendarDailyResponse> bills = utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(householdId)
+        String yearMonth = YearMonth.from(date).toString();
+        List<UtilityBill> todayBills = utilityBillRepository.findAllByHouseholdIdOrderByIdAsc(householdId)
                 .stream()
                 .filter(b -> Math.min(b.getPayDay(), daysInMonth) == date.getDayOfMonth())
-                .map(b -> CalendarDailyResponse.builder()
-                        .category("UTILITY_BILL")
-                        .id(b.getId())
-                        .title(b.getBillType().getLabel())
-                        .amount(b.getAmount())
-                        .isCompleted(b.getStatus() == BillStatus.SETTLED)
-                        .build())
+                .toList();
+
+        Map<Long, UtilityBillPayment> paymentMap = new HashMap<>();
+        utilityBillPaymentRepository.findAllByBillInAndYearMonth(todayBills, yearMonth)
+                .forEach(p -> paymentMap.put(p.getBill().getId(), p));
+
+        List<CalendarDailyResponse> bills = todayBills.stream()
+                .map(b -> {
+                    UtilityBillPayment p = paymentMap.get(b.getId());
+                    return CalendarDailyResponse.builder()
+                            .category("UTILITY_BILL")
+                            .id(b.getId())
+                            .title(b.getBillType().getLabel())
+                            .amount(p != null ? p.getAmount() : b.getAmount())
+                            .isCompleted(p != null && p.getStatus() == BillStatus.SETTLED)
+                            .build();
+                })
                 .toList();
 
         return Stream.concat(Stream.concat(chores.stream(), schedules.stream()), bills.stream())

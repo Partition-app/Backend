@@ -108,11 +108,7 @@ public class BillSettlementService {
             ));
         }
 
-        // payment 상태 업데이트 + 기존 bill 상태도 동기화 (confirmSettlement 호환)
-        payments.forEach(p -> {
-            p.requestSettlement(settlement);
-            p.getBill().requestSettlement(settlement);
-        });
+        payments.forEach(p -> p.requestSettlement(settlement));
 
         alarmService.createSettlementAlarms(savedMembers, settlement.getId(), AlarmType.BILL_SETTLEMENT_REQUESTED);
 
@@ -162,10 +158,7 @@ public class BillSettlementService {
         }
 
         settlement.confirm();
-        payments.forEach(p -> {
-            p.settle();
-            p.getBill().settle(settlement);
-        });
+        payments.forEach(UtilityBillPayment::settle);
 
         List<SettlementMember> members = settlementMemberRepository.findAllBySettlementId(settlementId);
 
@@ -203,12 +196,12 @@ public class BillSettlementService {
         }
 
         List<BillSettlementRequestedListResponse.SettlementItem> settlements =
-                utilityBillRepository.findAllByHouseholdIdAndStatus(user.getHouseholdId(), BillStatus.REQUESTED)
+                utilityBillPaymentRepository.findAllByHouseholdIdAndStatus(user.getHouseholdId(), BillStatus.REQUESTED)
                         .stream()
-                        .collect(Collectors.groupingBy(b -> b.getSettlement().getId()))
+                        .collect(Collectors.groupingBy(p -> p.getSettlement().getId()))
                         .values().stream()
-                        .map(bills -> {
-                            Settlement s = bills.get(0).getSettlement();
+                        .map(payments -> {
+                            Settlement s = payments.get(0).getSettlement();
                             return BillSettlementRequestedListResponse.SettlementItem.builder()
                                     .settlementId(s.getId())
                                     .totalAmount(s.getTotalAmount())

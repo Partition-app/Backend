@@ -28,4 +28,17 @@ public interface UtilityBillPaymentRepository extends JpaRepository<UtilityBillP
     List<UtilityBillPayment> findAllByBill(UtilityBill bill);
 
     void deleteAllByBill(UtilityBill bill);
+
+    @Query("SELECT p FROM UtilityBillPayment p WHERE p.bill.household.id = :householdId AND p.status = :status AND p.yearMonth >= :startYearMonth AND p.yearMonth <= :endYearMonth ORDER BY p.yearMonth ASC, p.id ASC")
+    List<UtilityBillPayment> findAllByHouseholdIdAndStatusAndYearMonthBetween(
+            @Param("householdId") Long householdId,
+            @Param("status") BillStatus status,
+            @Param("startYearMonth") String startYearMonth,
+            @Param("endYearMonth") String endYearMonth);
+
+    @Query("SELECT p FROM UtilityBillPayment p WHERE p.bill.household.id = :householdId AND p.yearMonth >= :startYearMonth AND p.yearMonth <= :endYearMonth")
+    List<UtilityBillPayment> findAllByHouseholdIdAndYearMonthBetween(
+            @Param("householdId") Long householdId,
+            @Param("startYearMonth") String startYearMonth,
+            @Param("endYearMonth") String endYearMonth);
 }

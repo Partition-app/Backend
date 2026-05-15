@@ -89,7 +89,7 @@ public class UtilityBillService {
                 .amount(bill.getAmount())
                 .thisMonthAmount(payment.getAmount())
                 .note(bill.getNote())
-                .status(bill.getStatus().name())
+                .status(payment.getStatus().name())
                 .createdAt(bill.getCreatedAt())
                 .build();
     }
@@ -192,7 +192,8 @@ public class UtilityBillService {
             throw new CustomException(BillErrorCode.BILL_6009);
         }
 
-        if (bill.getStatus() == BillStatus.SETTLED) {
+        List<UtilityBillPayment> payments = utilityBillPaymentRepository.findAllByBill(bill);
+        if (payments.stream().anyMatch(p -> p.getStatus() == BillStatus.REQUESTED)) {
             throw new CustomException(BillErrorCode.BILL_6007);
         }
 
@@ -211,7 +212,6 @@ public class UtilityBillService {
                 .isFixed(bill.isFixed())
                 .amount(bill.getAmount())
                 .note(bill.getNote())
-                .status(bill.getStatus().name())
                 .build();
     }
 

@@ -1,7 +1,6 @@
 package com.partition.entity;
 
 import com.partition.entity.enums.BillCategoryType;
-import com.partition.entity.enums.BillStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -36,16 +35,8 @@ public class UtilityBill extends BaseEntity {
     @Column
     private Integer amount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "varchar(20)")
-    private BillStatus status;
-
     @Column(length = 255)
     private String note;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "settlement_id")
-    private Settlement settlement;
 
     @Builder
     public UtilityBill(Household household, BillCategoryType billType, Integer payDay, boolean isFixed, Integer amount, String note) {
@@ -54,18 +45,7 @@ public class UtilityBill extends BaseEntity {
         this.payDay = payDay;
         this.isFixed = isFixed;
         this.amount = amount;
-        this.status = BillStatus.UNSETTLED;
         this.note = note;
-    }
-
-    public void requestSettlement(Settlement settlement) {
-        this.status = BillStatus.REQUESTED;
-        this.settlement = settlement;
-    }
-
-    public void settle(Settlement settlement) {
-        this.status = BillStatus.SETTLED;
-        this.settlement = settlement;
     }
 
     public void update(BillCategoryType billType, Integer payDay, boolean isFixed, Integer amount, String note) {
@@ -74,14 +54,5 @@ public class UtilityBill extends BaseEntity {
         this.isFixed = isFixed;
         this.amount = amount;
         this.note = note;
-    }
-
-    public void toggleSettlementStatus() {
-        if (this.status == BillStatus.UNSETTLED) {
-            this.status = BillStatus.SETTLED;
-        } else {
-            this.status = BillStatus.UNSETTLED;
-            this.settlement = null;
-        }
     }
 }

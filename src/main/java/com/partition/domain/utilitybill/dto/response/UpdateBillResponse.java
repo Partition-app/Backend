@@ -16,5 +16,4 @@ public class UpdateBillResponse {
     private boolean isFixed;
     private Integer amount;
     private String note;
-    private String status;
 }
