@@ -5,7 +5,7 @@ import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.CreateBillSettlementRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdatePaymentAmountRequest;
-import com.partition.domain.utilitybill.dto.response.BillPaymentHistoryResponse;
+import com.partition.domain.utilitybill.dto.response.BillPaymentListResponse;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementDetailResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
@@ -79,7 +79,7 @@ public class UtilityBillController {
         );
     }
 
-    @Operation(summary = "공과금 목록 조회", description = "날짜와 관계없이 모든 공과금 목록을 조회합니다.")
+    @Operation(summary = "공과금 종류 조회", description = "날짜와 관계없이 모든 공과금 목록을 조회합니다.")
     @GetMapping
     public ResponseEntity<ApiResponse<List<BillResponse>>> getBills(
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -164,14 +164,15 @@ public class UtilityBillController {
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 정산 상세 조회 성공", result));
     }
 
-    @Operation(summary = "공과금 납부 기록 조회", description = "특정 공과금의 월별 납부 기록 목록을 조회합니다.")
-    @GetMapping("/{billId}/payments")
-    public ResponseEntity<ApiResponse<BillPaymentHistoryResponse>> getBillPayments(
+    @Operation(summary = "공과금 납부 기록 조회", description = "기간 내 모든 공과금 납부 기록을 조회합니다.")
+    @GetMapping("/payments")
+    public ResponseEntity<ApiResponse<BillPaymentListResponse>> getPayments(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long billId
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
     ) {
         Long userId = Long.parseLong(userDetails.getUsername());
-        BillPaymentHistoryResponse result = utilityBillService.getBillPayments(userId, billId);
+        BillPaymentListResponse result = utilityBillService.getPayments(userId, startDate, endDate);
 
         return ResponseEntity.ok(ApiResponse.onSuccess("200", "공과금 납부 기록 조회 성공", result));
     }

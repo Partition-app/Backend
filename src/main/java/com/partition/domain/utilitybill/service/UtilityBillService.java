@@ -4,7 +4,7 @@ import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdatePaymentAmountRequest;
-import com.partition.domain.utilitybill.dto.response.BillPaymentHistoryResponse;
+import com.partition.domain.utilitybill.dto.response.BillPaymentListResponse;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
@@ -242,20 +242,59 @@ public class UtilityBillService {
     }
 
     @Transactional(readOnly = true)
-    public BillPaymentHistoryResponse getBillPayments(Long userId, Long billId) {
-        UtilityBill bill = utilityBillRepository.findById(billId)
-                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_7001));
+    public BillPaymentListResponse getPayments(Long userId, String startDate, String endDate) {
+        if (startDate == null || startDate.isBlank()) throw new CustomException(BillErrorCode.BILL_2001);
+        if (endDate == null || endDate.isBlank()) throw new CustomException(BillErrorCode.BILL_2002);
 
-        User caller = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
-
-        if (caller.getHouseholdId() == null ||
-                !caller.getHouseholdId().equals(bill.getHousehold().getId())) {
-            throw new CustomException(BillErrorCode.BILL_7003);
+        LocalDate start;
+        LocalDate end;
+        try {
+            start = LocalDate.parse(startDate);
+            end = LocalDate.parse(endDate);
+        } catch (DateTimeParseException e) {
+            throw new CustomException(BillErrorCode.BILL_2003);
         }
 
-        List<UtilityBillPayment> payments = utilityBillPaymentRepository.findAllByBill(bill);
-        return BillPaymentHistoryResponse.of(bill, payments);
+        if (end.isBefore(start)) throw new CustomException(BillErrorCode.BILL_2004);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (user.getHouseholdId() == null) throw new CustomException(BillErrorCode.BILL_2005);
+
+        String startYm = YearMonth.from(start).toString();
+        String endYm = YearMonth.from(end).toString();
+
+        List<BillPaymentListResponse.PaymentItem> items = utilityBillPaymentRepository
+                .findAllByHouseholdIdAndYearMonthBetween(user.getHouseholdId(), startYm, endYm)
+                .stream()
+                .filter(p -> {
+                    YearMonth ym = YearMonth.parse(p.getYearMonth());
+                    int day = Math.min(p.getBill().getPayDay(), ym.lengthOfMonth());
+                    LocalDate dueDate = ym.atDay(day);
+                    return !dueDate.isBefore(start) && !dueDate.isAfter(end);
+                })
+                .map(p -> {
+                    YearMonth ym = YearMonth.parse(p.getYearMonth());
+                    int day = Math.min(p.getBill().getPayDay(), ym.lengthOfMonth());
+                    return BillPaymentListResponse.PaymentItem.builder()
+                            .paymentId(p.getId())
+                            .billId(p.getBill().getId())
+                            .utilityType(p.getBill().getBillType().name())
+                            .utilityTypeName(p.getBill().getBillType().getLabel())
+                            .isFixed(p.getBill().isFixed())
+                            .payDay(p.getBill().getPayDay())
+                            .dueDate(ym.atDay(day).toString())
+                            .amount(p.getAmount())
+                            .status(p.getStatus().name())
+                            .build();
+                })
+                .toList();
+
+        return BillPaymentListResponse.builder()
+                .totalCount(items.size())
+                .payments(items)
+                .build();
     }
 
     @Transactional
