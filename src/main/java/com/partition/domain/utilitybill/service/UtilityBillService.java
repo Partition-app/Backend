@@ -1,9 +1,12 @@
 package com.partition.domain.utilitybill.service;
 
+import com.partition.domain.alarm.repository.AlarmRepository;
+import com.partition.domain.alarm.service.FcmService;
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdatePaymentAmountRequest;
+import com.partition.domain.utilitybill.dto.response.BillPaymentListResponse;
 import com.partition.domain.utilitybill.dto.response.BillResponse;
 import com.partition.domain.utilitybill.dto.response.BillSettlementListResponse;
 import com.partition.domain.utilitybill.dto.response.CreateBillResponse;
@@ -14,10 +17,12 @@ import com.partition.domain.utilitybill.exception.BillErrorCode;
 import com.partition.domain.utilitybill.repository.UtilityBillPaymentRepository;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
 import com.partition.domain.user.repository.UserRepository;
+import com.partition.entity.Alarm;
 import com.partition.entity.Household;
 import com.partition.entity.UtilityBill;
 import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.User;
+import com.partition.entity.enums.AlarmType;
 import com.partition.entity.enums.BillCategoryType;
 import com.partition.entity.enums.BillStatus;
 import com.partition.global.exception.CustomException;
@@ -40,6 +45,8 @@ public class UtilityBillService {
     private final HouseholdRepository householdRepository;
     private final UtilityBillRepository utilityBillRepository;
     private final UtilityBillPaymentRepository utilityBillPaymentRepository;
+    private final AlarmRepository alarmRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public CreateBillResponse createBill(Long userId, CreateBillRequest request) {
@@ -79,6 +86,21 @@ public class UtilityBillService {
                         .build()
         );
 
+        if (!isFixed) {
+            List<User> members = userRepository.findByHouseholdId(household.getId());
+            List<Alarm> alarms = members.stream()
+                    .map(u -> Alarm.builder()
+                            .userId(u.getId())
+                            .type(AlarmType.BILL_PAYMENT_REMINDER)
+                            .referenceId(bill.getId())
+                            .build())
+                    .toList();
+            alarmRepository.saveAll(alarms);
+            members.stream()
+                    .filter(u -> u.getFcmToken() != null)
+                    .forEach(u -> fcmService.sendPush(u.getFcmToken(), AlarmType.BILL_PAYMENT_REMINDER));
+        }
+
         return CreateBillResponse.builder()
                 .billId(bill.getId())
                 .utilityType(bill.getBillType().name())
@@ -88,7 +110,7 @@ public class UtilityBillService {
                 .amount(bill.getAmount())
                 .thisMonthAmount(payment.getAmount())
                 .note(bill.getNote())
-                .status(bill.getStatus().name())
+                .status(payment.getStatus().name())
                 .createdAt(bill.getCreatedAt())
                 .build();
     }
@@ -191,7 +213,8 @@ public class UtilityBillService {
             throw new CustomException(BillErrorCode.BILL_6009);
         }
 
-        if (bill.getStatus() == BillStatus.SETTLED) {
+        List<UtilityBillPayment> payments = utilityBillPaymentRepository.findAllByBill(bill);
+        if (payments.stream().anyMatch(p -> p.getStatus() == BillStatus.REQUESTED)) {
             throw new CustomException(BillErrorCode.BILL_6007);
         }
 
@@ -210,7 +233,6 @@ public class UtilityBillService {
                 .isFixed(bill.isFixed())
                 .amount(bill.getAmount())
                 .note(bill.getNote())
-                .status(bill.getStatus().name())
                 .build();
     }
 
@@ -238,6 +260,62 @@ public class UtilityBillService {
 
         utilityBillPaymentRepository.deleteAllByBill(bill);
         utilityBillRepository.delete(bill);
+    }
+
+    @Transactional(readOnly = true)
+    public BillPaymentListResponse getPayments(Long userId, String startDate, String endDate) {
+        if (startDate == null || startDate.isBlank()) throw new CustomException(BillErrorCode.BILL_2001);
+        if (endDate == null || endDate.isBlank()) throw new CustomException(BillErrorCode.BILL_2002);
+
+        LocalDate start;
+        LocalDate end;
+        try {
+            start = LocalDate.parse(startDate);
+            end = LocalDate.parse(endDate);
+        } catch (DateTimeParseException e) {
+            throw new CustomException(BillErrorCode.BILL_2003);
+        }
+
+        if (end.isBefore(start)) throw new CustomException(BillErrorCode.BILL_2004);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(BillErrorCode.BILL_9001));
+
+        if (user.getHouseholdId() == null) throw new CustomException(BillErrorCode.BILL_2005);
+
+        String startYm = YearMonth.from(start).toString();
+        String endYm = YearMonth.from(end).toString();
+
+        List<BillPaymentListResponse.PaymentItem> items = utilityBillPaymentRepository
+                .findAllByHouseholdIdAndYearMonthBetween(user.getHouseholdId(), startYm, endYm)
+                .stream()
+                .filter(p -> {
+                    YearMonth ym = YearMonth.parse(p.getYearMonth());
+                    int day = Math.min(p.getBill().getPayDay(), ym.lengthOfMonth());
+                    LocalDate dueDate = ym.atDay(day);
+                    return !dueDate.isBefore(start) && !dueDate.isAfter(end);
+                })
+                .map(p -> {
+                    YearMonth ym = YearMonth.parse(p.getYearMonth());
+                    int day = Math.min(p.getBill().getPayDay(), ym.lengthOfMonth());
+                    return BillPaymentListResponse.PaymentItem.builder()
+                            .paymentId(p.getId())
+                            .billId(p.getBill().getId())
+                            .utilityType(p.getBill().getBillType().name())
+                            .utilityTypeName(p.getBill().getBillType().getLabel())
+                            .isFixed(p.getBill().isFixed())
+                            .payDay(p.getBill().getPayDay())
+                            .dueDate(ym.atDay(day).toString())
+                            .amount(p.getAmount())
+                            .status(p.getStatus().name())
+                            .build();
+                })
+                .toList();
+
+        return BillPaymentListResponse.builder()
+                .totalCount(items.size())
+                .payments(items)
+                .build();
     }
 
     @Transactional

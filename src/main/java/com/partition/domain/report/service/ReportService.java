@@ -15,12 +15,12 @@ import com.partition.domain.reservation.repository.ReservationRepository;
 import com.partition.domain.supply.repository.SupplyPurchaseRepository;
 import com.partition.domain.user.exception.UserErrorCode;
 import com.partition.domain.user.repository.UserRepository;
-import com.partition.domain.utilitybill.repository.UtilityBillRepository;
+import com.partition.domain.utilitybill.repository.UtilityBillPaymentRepository;
 import com.partition.entity.Chore;
 import com.partition.entity.HouseholdChore;
 import com.partition.entity.Reservation;
 import com.partition.entity.SupplyPurchase;
-import com.partition.entity.UtilityBill;
+import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.enums.BillCategoryType;
 import com.partition.entity.enums.BillStatus;
 import com.partition.entity.enums.ChoreType;
@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
@@ -48,7 +49,7 @@ public class ReportService {
     private final HouseholdChoreRepository householdChoreRepository;
     private final UserChorePreferenceRepository userChorePreferenceRepository;
     private final SupplyPurchaseRepository supplyPurchaseRepository;
-    private final UtilityBillRepository utilityBillRepository;
+    private final UtilityBillPaymentRepository utilityBillPaymentRepository;
     private final ReservationRepository reservationRepository;
 
     @Transactional(readOnly = true)
@@ -186,17 +187,24 @@ public class ReportService {
         LocalDate prevEnd = start.minusDays(1);
         LocalDate prevStart = prevEnd.minusDays(durationDays);
 
-        Map<BillCategoryType, Integer> currentByType = utilityBillRepository
-                .findAllByHouseholdIdAndCreatedAtBetween(householdId, start.atStartOfDay(), end.plusDays(1).atStartOfDay())
-                .stream()
-                .collect(Collectors.groupingBy(UtilityBill::getBillType,
-                        Collectors.summingInt(UtilityBill::getAmount)));
+        String startYm = YearMonth.from(start).toString();
+        String endYm = YearMonth.from(end).toString();
+        String prevStartYm = YearMonth.from(prevStart).toString();
+        String prevEndYm = YearMonth.from(prevEnd).toString();
 
-        Map<BillCategoryType, Integer> previousByType = utilityBillRepository
-                .findAllByHouseholdIdAndCreatedAtBetween(householdId, prevStart.atStartOfDay(), prevEnd.plusDays(1).atStartOfDay())
+        Map<BillCategoryType, Integer> currentByType = utilityBillPaymentRepository
+                .findAllByHouseholdIdAndYearMonthBetween(householdId, startYm, endYm)
                 .stream()
-                .collect(Collectors.groupingBy(UtilityBill::getBillType,
-                        Collectors.summingInt(UtilityBill::getAmount)));
+                .filter(p -> p.getAmount() != null)
+                .collect(Collectors.groupingBy(p -> p.getBill().getBillType(),
+                        Collectors.summingInt(UtilityBillPayment::getAmount)));
+
+        Map<BillCategoryType, Integer> previousByType = utilityBillPaymentRepository
+                .findAllByHouseholdIdAndYearMonthBetween(householdId, prevStartYm, prevEndYm)
+                .stream()
+                .filter(p -> p.getAmount() != null)
+                .collect(Collectors.groupingBy(p -> p.getBill().getBillType(),
+                        Collectors.summingInt(UtilityBillPayment::getAmount)));
 
         return currentByType.entrySet().stream()
                 .filter(e -> previousByType.containsKey(e.getKey()) && previousByType.get(e.getKey()) > 0)
@@ -293,16 +301,16 @@ public class ReportService {
                         .build())
                 .toList();
 
-        List<SettlementReportResponse.BillItem> bills = utilityBillRepository
-                .findAllByHouseholdIdAndStatusAndCreatedAtBetweenOrderByCreatedAtAscIdAsc(
+        List<SettlementReportResponse.BillItem> bills = utilityBillPaymentRepository
+                .findAllByHouseholdIdAndStatusAndYearMonthBetween(
                         householdId, BillStatus.SETTLED,
-                        start.atStartOfDay(), end.plusDays(1).atStartOfDay())
+                        YearMonth.from(start).toString(), YearMonth.from(end).toString())
                 .stream()
-                .map(b -> SettlementReportResponse.BillItem.builder()
-                        .utilityType(b.getBillType().name())
-                        .utilityTypeName(b.getBillType().getLabel())
-                        .billingMonth(b.getCreatedAt().toString().substring(0, 7))
-                        .amount(b.getAmount())
+                .map(p -> SettlementReportResponse.BillItem.builder()
+                        .utilityType(p.getBill().getBillType().name())
+                        .utilityTypeName(p.getBill().getBillType().getLabel())
+                        .billingMonth(p.getYearMonth())
+                        .amount(p.getAmount())
                         .build())
                 .toList();
 
