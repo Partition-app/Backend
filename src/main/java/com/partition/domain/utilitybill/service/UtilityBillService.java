@@ -1,5 +1,7 @@
 package com.partition.domain.utilitybill.service;
 
+import com.partition.domain.alarm.repository.AlarmRepository;
+import com.partition.domain.alarm.service.FcmService;
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.utilitybill.dto.request.CreateBillRequest;
 import com.partition.domain.utilitybill.dto.request.UpdateBillRequest;
@@ -15,10 +17,12 @@ import com.partition.domain.utilitybill.exception.BillErrorCode;
 import com.partition.domain.utilitybill.repository.UtilityBillPaymentRepository;
 import com.partition.domain.utilitybill.repository.UtilityBillRepository;
 import com.partition.domain.user.repository.UserRepository;
+import com.partition.entity.Alarm;
 import com.partition.entity.Household;
 import com.partition.entity.UtilityBill;
 import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.User;
+import com.partition.entity.enums.AlarmType;
 import com.partition.entity.enums.BillCategoryType;
 import com.partition.entity.enums.BillStatus;
 import com.partition.global.exception.CustomException;
@@ -41,6 +45,8 @@ public class UtilityBillService {
     private final HouseholdRepository householdRepository;
     private final UtilityBillRepository utilityBillRepository;
     private final UtilityBillPaymentRepository utilityBillPaymentRepository;
+    private final AlarmRepository alarmRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public CreateBillResponse createBill(Long userId, CreateBillRequest request) {
@@ -79,6 +85,21 @@ public class UtilityBillService {
                         .amount(thisMonthAmount)
                         .build()
         );
+
+        if (!isFixed) {
+            List<User> members = userRepository.findByHouseholdId(household.getId());
+            List<Alarm> alarms = members.stream()
+                    .map(u -> Alarm.builder()
+                            .userId(u.getId())
+                            .type(AlarmType.BILL_PAYMENT_REMINDER)
+                            .referenceId(bill.getId())
+                            .build())
+                    .toList();
+            alarmRepository.saveAll(alarms);
+            members.stream()
+                    .filter(u -> u.getFcmToken() != null)
+                    .forEach(u -> fcmService.sendPush(u.getFcmToken(), AlarmType.BILL_PAYMENT_REMINDER));
+        }
 
         return CreateBillResponse.builder()
                 .billId(bill.getId())

@@ -56,9 +56,9 @@ public class UtilityBillScheduler {
         log.info("[스케줄러] 월별 공과금 payment 생성 완료 - yearMonth: {}, 대상 bill 수: {}", yearMonth, bills.size());
     }
 
-    // 매일 오전 9시 — 변동 공과금 납부일에 금액 입력 FCM 발송
+    // 변동 공과금 등록 시 createBill에서 즉시 발송으로 변경 — 스케줄러 비활성화
     // @Scheduled(cron = "0 0 9 * * *")
-    @Scheduled(cron = "0 0 9-23 * * *")
+    // @Scheduled(cron = "0 0 9-23 * * *")
     @Transactional
     public void sendPayDayReminders() {
         int today = LocalDate.now().getDayOfMonth();
