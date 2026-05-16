@@ -15,11 +15,15 @@ import java.util.Map;
 public class FcmService {
 
     public void sendPush(String fcmToken, AlarmType type) {
+        sendPush(fcmToken, type.getMessage());
+    }
+
+    public void sendPush(String fcmToken, String body) {
         Message message = Message.builder()
                 .setToken(fcmToken)
                 .setNotification(Notification.builder()
                         .setTitle("Partition")
-                        .setBody(type.getMessage())
+                        .setBody(body)
                         .build())
                 .build();
 

@@ -35,11 +35,11 @@ public class Alarm extends BaseEntity {
     private Boolean isRead = false;
 
     @Builder
-    public Alarm(Long userId, AlarmType type, Long referenceId) {
+    public Alarm(Long userId, AlarmType type, Long referenceId, String message) {
         this.userId = userId;
         this.type = type;
         this.referenceId = referenceId;
-        this.message = type.getMessage();
+        this.message = message != null ? message : type.getMessage();
         this.isRead = false;
     }
 
