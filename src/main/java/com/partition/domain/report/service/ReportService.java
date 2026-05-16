@@ -20,6 +20,7 @@ import com.partition.entity.Chore;
 import com.partition.entity.HouseholdChore;
 import com.partition.entity.Reservation;
 import com.partition.entity.SupplyPurchase;
+import com.partition.entity.User;
 import com.partition.entity.UtilityBillPayment;
 import com.partition.entity.enums.BillCategoryType;
 import com.partition.entity.enums.BillStatus;
@@ -69,15 +70,19 @@ public class ReportService {
             throw new CustomException(ReportErrorCode.REPORT_1005);
         }
 
+        List<User> members = userRepository.findByHouseholdId(householdId).stream()
+                .filter(m -> Boolean.TRUE.equals(m.getIsActive()))
+                .toList();
+
         return PartitionReportResponse.builder()
-                .chores(buildChoreReports(householdId, start, end))
+                .chores(buildChoreReports(householdId, start, end, members))
                 .supplies(buildSupplyReport(householdId, start, end))
                 .bills(buildBillReports(householdId, start, end))
                 .reservations(buildReservationReports(householdId, start, end))
                 .build();
     }
 
-    private List<ChoreReport> buildChoreReports(Long householdId, LocalDate start, LocalDate end) {
+    private List<ChoreReport> buildChoreReports(Long householdId, LocalDate start, LocalDate end, List<User> members) {
         // 멤버별 난이도 선호도의 평균. 선호도 없는 타입은 HouseholdChore.difficulty로 fallback
         Map<ChoreType, Integer> defaultDifficultyMap = householdChoreRepository.findByHouseholdId(householdId)
                 .stream()
@@ -100,6 +105,9 @@ public class ReportService {
         Map<ChoreType, List<Chore>> byType = completedChores.stream()
                 .collect(Collectors.groupingBy(Chore::getType));
 
+        Map<Long, String> memberNameMap = members.stream()
+                .collect(Collectors.toMap(User::getId, User::getName));
+
         LocalDate today = LocalDate.now();
 
         return difficultyMap.entrySet().stream()
@@ -112,17 +120,26 @@ public class ReportService {
                     Integer lastPerformedDaysAgo = null;
 
                     if (!chores.isEmpty()) {
-                        Map<Long, Long> countByUser = chores.stream()
-                                .collect(Collectors.groupingBy(c -> c.getAssignee().getId(), Collectors.counting()));
+                        Map<Long, Long> countByUser = members.stream()
+                                .collect(Collectors.toMap(User::getId, u -> 0L));
+                        chores.forEach(c -> countByUser.merge(c.getAssignee().getId(), 1L, Long::sum));
 
                         top = countByUser.entrySet().stream()
                                 .max(Map.Entry.comparingByValue())
-                                .map(e -> buildPerformerFromChores(e.getKey(), chores, e.getValue()))
+                                .map(e -> Performer.builder()
+                                        .userId(e.getKey())
+                                        .userName(memberNameMap.getOrDefault(e.getKey(), ""))
+                                        .count(e.getValue().intValue())
+                                        .build())
                                 .orElse(null);
 
                         bottom = countByUser.entrySet().stream()
                                 .min(Map.Entry.comparingByValue())
-                                .map(e -> buildPerformerFromChores(e.getKey(), chores, e.getValue()))
+                                .map(e -> Performer.builder()
+                                        .userId(e.getKey())
+                                        .userName(memberNameMap.getOrDefault(e.getKey(), ""))
+                                        .count(e.getValue().intValue())
+                                        .build())
                                 .orElse(null);
                     }
 
@@ -143,15 +160,6 @@ public class ReportService {
                             .build();
                 })
                 .toList();
-    }
-
-    private Performer buildPerformerFromChores(Long userId, List<Chore> chores, long count) {
-        String name = chores.stream()
-                .filter(c -> c.getAssignee().getId().equals(userId))
-                .findFirst()
-                .map(c -> c.getAssignee().getName())
-                .orElse("");
-        return Performer.builder().userId(userId).userName(name).count((int) count).build();
     }
 
     private PartitionReportResponse.SupplyReport buildSupplyReport(Long householdId, LocalDate start, LocalDate end) {
