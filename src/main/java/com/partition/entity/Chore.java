@@ -38,6 +38,11 @@ public class Chore extends BaseEntity {
         this.isCompleted = false;
     }
 
+    public void update(User assignee, java.time.LocalDate date) {
+        if (assignee != null) this.assignee = assignee;
+        if (date != null) this.date = date;
+    }
+
     public void complete() {
         this.isCompleted = true;
     }
