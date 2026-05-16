@@ -78,6 +78,13 @@ public class ChoreService {
             }
         }
 
+        boolean assigneeChanged = newAssignee != null && !newAssignee.getId().equals(chore.getAssignee().getId());
+        boolean dateChanged = request.getDate() != null && !request.getDate().equals(chore.getDate());
+
+        if (!assigneeChanged && !dateChanged) {
+            return ChoreResponse.from(chore);
+        }
+
         chore.update(newAssignee, request.getDate());
 
         List<User> members = userRepository.findByHouseholdId(requester.getHouseholdId());
@@ -96,6 +103,10 @@ public class ChoreService {
 
         if (!requester.getHouseholdId().equals(chore.getAssignee().getHouseholdId())) {
             throw new CustomException(ChoreErrorCode.CHORE_4002);
+        }
+
+        if (chore.isCompleted()) {
+            throw new CustomException(ChoreErrorCode.CHORE_4003);
         }
 
         String assigneeName = chore.getAssignee().getName();
