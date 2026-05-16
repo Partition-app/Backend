@@ -6,6 +6,7 @@ import com.partition.domain.alarm.exception.AlarmErrorCode;
 import com.partition.domain.alarm.repository.AlarmRepository;
 import com.partition.entity.Alarm;
 import com.partition.entity.SettlementMember;
+import com.partition.entity.User;
 import com.partition.entity.enums.AlarmType;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +60,26 @@ public class AlarmService {
         }
 
         alarmRepository.delete(alarm);
+    }
+
+    @Transactional
+    public void createChoreAlarms(List<User> members, Long choreId, AlarmType type, String assigneeName) {
+        String formattedMessage = type.formatMessage(assigneeName);
+
+        List<Alarm> alarms = members.stream()
+                .map(member -> Alarm.builder()
+                        .userId(member.getId())
+                        .type(type)
+                        .referenceId(choreId)
+                        .message(formattedMessage)
+                        .build())
+                .toList();
+
+        alarmRepository.saveAll(alarms);
+
+        members.stream()
+                .filter(member -> member.getFcmToken() != null)
+                .forEach(member -> fcmService.sendPush(member.getFcmToken(), formattedMessage));
     }
 
     @Transactional

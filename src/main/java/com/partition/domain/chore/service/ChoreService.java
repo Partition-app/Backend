@@ -1,5 +1,6 @@
 package com.partition.domain.chore.service;
 
+import com.partition.domain.alarm.service.AlarmService;
 import com.partition.domain.chore.dto.request.CreateChoreRequest;
 import com.partition.domain.chore.dto.request.UpdateChoreRequest;
 import com.partition.domain.chore.dto.response.ChoreResponse;
@@ -10,10 +11,13 @@ import com.partition.domain.user.exception.UserErrorCode;
 import com.partition.domain.user.repository.UserRepository;
 import com.partition.entity.Chore;
 import com.partition.entity.User;
+import com.partition.entity.enums.AlarmType;
 import com.partition.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +25,7 @@ public class ChoreService {
 
     private final ChoreRepository choreRepository;
     private final UserRepository userRepository;
+    private final AlarmService alarmService;
 
     @Transactional
     public ChoreResponse createChore(Long userId, CreateChoreRequest request) {
@@ -41,6 +46,9 @@ public class ChoreService {
                 .build();
 
         choreRepository.save(chore);
+
+        List<User> members = userRepository.findByHouseholdId(assignee.getHouseholdId());
+        alarmService.createChoreAlarms(members, chore.getId(), AlarmType.CHORE_ASSIGNED, assignee.getName());
 
         return ChoreResponse.from(chore);
     }
@@ -72,6 +80,9 @@ public class ChoreService {
 
         chore.update(newAssignee, request.getDate());
 
+        List<User> members = userRepository.findByHouseholdId(requester.getHouseholdId());
+        alarmService.createChoreAlarms(members, chore.getId(), AlarmType.CHORE_UPDATED, chore.getAssignee().getName());
+
         return ChoreResponse.from(chore);
     }
 
@@ -87,7 +98,13 @@ public class ChoreService {
             throw new CustomException(ChoreErrorCode.CHORE_4002);
         }
 
+        String assigneeName = chore.getAssignee().getName();
+        Long householdId = chore.getAssignee().getHouseholdId();
+
         choreRepository.delete(chore);
+
+        List<User> members = userRepository.findByHouseholdId(householdId);
+        alarmService.createChoreAlarms(members, choreId, AlarmType.CHORE_DELETED, assigneeName);
     }
 
     @Transactional
