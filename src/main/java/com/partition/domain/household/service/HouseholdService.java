@@ -2,6 +2,7 @@ package com.partition.domain.household.service;
 
 import com.partition.domain.chore.repository.HouseholdChoreRepository;
 import com.partition.domain.household.dto.response.HouseholdInfoResponse;
+import com.partition.domain.household.dto.response.HouseholdMemberResponse;
 import com.partition.domain.household.exception.HouseholdErrorCode;
 import com.partition.domain.household.repository.HouseholdRepository;
 import com.partition.domain.user.exception.UserErrorCode;
@@ -97,11 +98,18 @@ public class HouseholdService {
         Household household = householdRepository.findById(user.getHouseholdId())
                 .orElseThrow(() -> new CustomException(HouseholdErrorCode.HOUSEHOLD_NOT_FOUND));
 
+        List<HouseholdMemberResponse> members = userRepository.findByHouseholdId(user.getHouseholdId())
+                .stream()
+                .filter(m -> Boolean.TRUE.equals(m.getIsActive()))
+                .map(HouseholdMemberResponse::from)
+                .toList();
+
         return HouseholdInfoResponse.builder()
                 .householdId(household.getId())
                 .householdName(household.getName())
                 .inviteCode(household.getInviteCode())
                 .isLeader(user.getMemberRole() == UserRole.LEADER)
+                .members(members)
                 .build();
     }
 
