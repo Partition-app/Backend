@@ -95,6 +95,7 @@ public class CalendarService {
                                         .orElse(null)
                         )
                         .isCompleted(chore.isCompleted())
+                        .isOwner(chore.getAssignee() != null && Objects.equals(chore.getAssignee().getId(), userId))
                         .build())
                 .toList();
 
