@@ -30,7 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class HomeShareService {
 
-    private static final Duration NOTIFICATION_COOLDOWN = Duration.ofMinutes(30);
+    private static final Duration NOTIFICATION_COOLDOWN = Duration.ofMinutes(10);
 
     private final LocationSharingConsentRepository consentRepository;
     private final HomeLocationRepository homeLocationRepository;
