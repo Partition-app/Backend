@@ -4,6 +4,8 @@ import com.partition.domain.supply.dto.response.ReceiptAnalysisResponse;
 import com.partition.domain.supply.dto.response.ReceiptItemResponse;
 import com.partition.domain.supply.exception.SupplyErrorCode;
 import com.partition.global.exception.CustomException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,10 +31,12 @@ public class ReceiptAnalysisService {
     private String fastapiUrl;
 
     private final RestTemplate restTemplate;
+    private final MeterRegistry meterRegistry;
 
     public ReceiptAnalysisResponse analyzeReceipt(MultipartFile image) {
         validateImage(image);
 
+        Timer.Sample sample = Timer.start(meterRegistry);
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -72,6 +76,10 @@ public class ReceiptAnalysisService {
         } catch (Exception e) {
             log.error("영수증 분석 중 오류 발생", e);
             throw new CustomException(SupplyErrorCode.SUPPLY_4003);
+        } finally {
+            sample.stop(Timer.builder("fastapi.call.duration")
+                    .tag("api", "receipt-analysis")
+                    .register(meterRegistry));
         }
     }
 
