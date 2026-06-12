@@ -14,6 +14,8 @@ import com.partition.entity.User;
 import com.partition.entity.UserChorePreference;
 import com.partition.entity.enums.ChoreType;
 import com.partition.global.exception.CustomException;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +39,7 @@ public class ChoreAssignmentService {
     private final HouseholdChoreRepository householdChoreRepository;
     private final UserChorePreferenceRepository preferenceRepository;
     private final ChoreRepository choreRepository;
+    private final MeterRegistry meterRegistry;
 
     @Value("${fastapi.url}")
     private String FASFASTAPI_URL;
@@ -67,6 +70,7 @@ public class ChoreAssignmentService {
 
         log.info("FastAPI로 배정 요청 전송: householdId={}", householdId);
         AssignmentResponse response;
+        Timer.Sample sample = Timer.start(meterRegistry);
         try {
             response = restTemplate.postForObject(FASFASTAPI_URL + "/api/chores/assign", request, AssignmentResponse.class);
 
@@ -76,6 +80,10 @@ public class ChoreAssignmentService {
         } catch (RestClientException e) {
             log.error("FastAPI 호출 실패: {}", e.getMessage(), e);
             throw new CustomException(ChoreErrorCode.ASSIGNMENT_API_UNAVAILABLE);
+        } finally {
+            sample.stop(Timer.builder("fastapi.call.duration")
+                    .tag("api", "chore-auto-assign")
+                    .register(meterRegistry));
         }
 
 
