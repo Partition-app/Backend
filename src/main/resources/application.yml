@@ -6,6 +6,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       pool-name: partition
+      maximum-pool-size: 30
 
   jpa:
     hibernate:
