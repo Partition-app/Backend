@@ -20,13 +20,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,11 +41,11 @@ public class ChoreAssignmentService {
     private final UserChorePreferenceRepository preferenceRepository;
     private final ChoreRepository choreRepository;
     private final MeterRegistry meterRegistry;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${fastapi.url}")
     private String FASFASTAPI_URL;
 
-    @Transactional
     public List<AssignmentResponse.AssignmentResult> assignChores(Long userId, LocalDate startDate, int periodDays, List<ChoreType> targetChoreTypes) {
         User requester = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(UserErrorCode.USER_NOT_FOUND));
@@ -87,28 +88,31 @@ public class ChoreAssignmentService {
         }
 
 
-        choreRepository.deleteAllByHouseholdIdAndDateRange(householdId, startDate, endDate);
+        Set<Long> validUserIds = members.stream().map(User::getId).collect(Collectors.toSet());
+        Map<Long, ChoreType> choreTypeMap = householdChores.stream()
+                .collect(Collectors.toMap(HouseholdChore::getId, HouseholdChore::getChoreType));
 
-        Map<Long, User> userMap = members.stream().collect(Collectors.toMap(User::getId, u -> u));
-        Map<Long, HouseholdChore> choreMap = householdChores.stream().collect(Collectors.toMap(HouseholdChore::getId, c -> c));
+        final AssignmentResponse finalResponse = response;
+        transactionTemplate.executeWithoutResult(status -> {
+            choreRepository.deleteAllByHouseholdIdAndDateRange(householdId, startDate, endDate);
 
-        for (AssignmentResponse.AssignmentResult result : response.getAssignments()) {
-            User assignee = userMap.get(result.getUserId());
-            HouseholdChore hhChore = choreMap.get(result.getChoreId());
+            for (AssignmentResponse.AssignmentResult result : finalResponse.getAssignments()) {
+                ChoreType choreType = choreTypeMap.get(result.getChoreId());
 
-            if (assignee == null || hhChore == null) {
-                log.warn("유효하지 않은 배정 결과 건너뜀: userId={}, choreId={}", result.getUserId(), result.getChoreId());
-                continue;
+                if (!validUserIds.contains(result.getUserId()) || choreType == null) {
+                    log.warn("유효하지 않은 배정 결과 건너뜀: userId={}, choreId={}", result.getUserId(), result.getChoreId());
+                    continue;
+                }
+
+                Chore chore = Chore.builder()
+                        .assignee(userRepository.getReferenceById(result.getUserId()))
+                        .type(choreType)
+                        .date(result.getDate())
+                        .build();
+
+                choreRepository.save(chore);
             }
-
-            Chore chore = Chore.builder()
-                    .assignee(assignee)
-                    .type(hhChore.getChoreType())
-                    .date(result.getDate())
-                    .build();
-
-            choreRepository.save(chore);
-        }
+        });
 
         log.info("집안일 배정 완료: 총 {}건", response.getAssignments().size());
 
