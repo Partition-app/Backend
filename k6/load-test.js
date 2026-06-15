@@ -97,8 +97,10 @@ export function locationShareFlow() {
 
 // 시나리오 2: 리포트 조회
 export function reportFlow() {
+  const endDate = TODAY;
+  const startDate = new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const res = http.get(
-    `${BASE_URL}/api/reports`,
+    `${BASE_URL}/api/reports?startDate=${startDate}&endDate=${endDate}`,
     { headers }
   );
   check(res, { '리포트 200': (r) => r.status === 200 });
