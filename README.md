@@ -49,13 +49,6 @@ src/main/java/com/partition/
 - **공용 공간 예약** - 예약 등록 및 충돌 방지
 - **월간 리포트** - 집안일 기여도 통계
 
-## API 문서
-
-서버 실행 후 Swagger UI에서 확인할 수 있습니다.
-
-```
-https://api.partition.site/swagger-ui/index.html
-```
 
 ## 로컬 실행
 
